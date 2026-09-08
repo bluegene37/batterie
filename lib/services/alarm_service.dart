@@ -7,6 +7,7 @@ class AlarmService {
   bool _isRinging = false;
   Timer? _testTimer;
 
+  // ignore: prefer_initializing_formals
   AlarmService({AudioPlayer? player}) : _player = player;
 
   AudioPlayer get player => _player ??= AudioPlayer();

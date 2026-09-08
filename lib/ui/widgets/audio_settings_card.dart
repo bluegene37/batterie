@@ -93,7 +93,7 @@ class AudioSettingsCard extends StatelessWidget {
             const SizedBox(height: 16),
             // Sound Preset Selector
             DropdownButtonFormField<String>(
-              value: selectedSound,
+              initialValue: selectedSound,
               decoration: const InputDecoration(
                 labelText: 'Alarm Sound Preset',
                 border: OutlineInputBorder(),

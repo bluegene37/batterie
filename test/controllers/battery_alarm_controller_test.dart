@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:batterie/controllers/battery_alarm_controller.dart';
 import 'package:batterie/models/alarm_state.dart';
 import 'package:batterie/models/battery_info.dart';
-import 'package:batterie/models/threshold_rule.dart';
 import 'package:batterie/services/alarm_service.dart';
 import 'package:batterie/services/settings_service.dart';
 

@@ -38,6 +38,7 @@ class BatteryAlarmController extends ChangeNotifier {
     BatteryService? batteryService,
     AlarmService? alarmService,
     SettingsService? settingsService,
+    // ignore: prefer_initializing_formals
   })  : _batteryService = batteryService,
         _alarmService = alarmService ?? AlarmService(),
         _settingsService = settingsService ?? SettingsService();
