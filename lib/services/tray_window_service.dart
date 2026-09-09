@@ -28,18 +28,18 @@ class TrayWindowService with TrayListener, WindowListener {
       windowManager.addListener(this);
 
       const windowOptions = WindowOptions(
-        size: Size(680, 780),
-        minimumSize: Size(550, 650),
+        size: Size(380, 600),
+        minimumSize: Size(340, 520),
         center: true,
         backgroundColor: Colors.transparent,
         skipTaskbar: false,
-        title: 'Battery Alarm Monitor',
+        title: 'Batterie',
       );
 
       await windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.setPreventClose(true);
         await windowManager.show();
         await windowManager.focus();
-        await windowManager.setPreventClose(true);
       });
 
       trayManager.addListener(this);
@@ -69,13 +69,17 @@ class TrayWindowService with TrayListener, WindowListener {
       items: [
         MenuItem(
           key: 'status',
-          label: batterySummary ?? 'Battery Alarm: Monitoring',
+          label: batterySummary ?? 'Batterie: Monitoring',
           disabled: true,
         ),
         MenuItem.separator(),
         MenuItem(
           key: 'show_app',
           label: 'Show Dashboard',
+        ),
+        MenuItem(
+          key: 'hide_app',
+          label: 'Hide to Menu Bar',
         ),
         MenuItem(
           key: 'test_alarm',
@@ -99,7 +103,7 @@ class TrayWindowService with TrayListener, WindowListener {
     if (!_isInitialized) return;
     try {
       final summary = '${info.statusText} ${isRinging ? "[ALARM RINGING]" : ""}';
-      await trayManager.setToolTip('Battery Alarm: $summary');
+      await trayManager.setToolTip('Batterie: $summary');
       await _setupTrayIcon(isRinging);
       await _updateContextMenu(batterySummary: summary);
     } catch (e) {
@@ -133,9 +137,19 @@ class TrayWindowService with TrayListener, WindowListener {
 
   // TrayListener callbacks
   @override
-  void onTrayIconMouseDown() {
-    bringToFront();
-    _onShow?.call();
+  void onTrayIconMouseDown() async {
+    try {
+      final isVisible = await windowManager.isVisible();
+      if (isVisible) {
+        await minimizeToTray();
+      } else {
+        await bringToFront();
+        _onShow?.call();
+      }
+    } catch (_) {
+      bringToFront();
+      _onShow?.call();
+    }
   }
 
   @override
@@ -149,6 +163,9 @@ class TrayWindowService with TrayListener, WindowListener {
       case 'show_app':
         bringToFront();
         _onShow?.call();
+        break;
+      case 'hide_app':
+        minimizeToTray();
         break;
       case 'test_alarm':
         _onTest?.call();

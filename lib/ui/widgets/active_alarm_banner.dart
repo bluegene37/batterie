@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/alarm_state.dart';
 import '../../models/battery_info.dart';
+import '../../theme/app_theme.dart';
 
 class ActiveAlarmBanner extends StatelessWidget {
   final AlarmState alarmState;
@@ -25,80 +26,92 @@ class ActiveAlarmBanner extends StatelessWidget {
     }
 
     final isRinging = alarmState.status == AlarmStatus.ringing;
-    final backgroundColor = isRinging ? Colors.red.shade700 : Colors.amber.shade800;
+    final bannerColor = isRinging ? AppColors.batteryCritical : AppColors.batteryWarning;
     final title = isRinging
         ? 'BATTERY ALARM TRIGGERED!'
         : 'Alarm Snoozed (${snoozeMinutes}m)';
     final message = isRinging
-        ? 'Battery dropped to ${batteryInfo.percentage}% (${alarmState.triggeredRule?.label ?? "Critical"}). Connect your charger now to stop the alarm.'
-        : 'Alarm will re-ring in $snoozeMinutes minutes if the charger is not connected.';
+        ? 'Battery dropped to ${batteryInfo.percentage}% (${alarmState.triggeredRule?.label ?? "Critical"}). Connect charger now to stop alarm.'
+        : 'Alarm will re-ring in $snoozeMinutes minutes if charger is disconnected.';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        color: bannerColor,
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         boxShadow: [
           BoxShadow(
-            color: backgroundColor.withValues(alpha: 0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: bannerColor.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isRinging ? Icons.warning_amber_rounded : Icons.snooze,
-            color: Colors.white,
-            size: 36,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Icon(
+                isRinging ? Icons.warning_amber_rounded : Icons.snooze_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
                   title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
                     fontSize: 13,
+                    letterSpacing: 0.2,
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11.5,
+              height: 1.3,
             ),
           ),
-          const SizedBox(width: 12),
-          if (isRinging)
-            ElevatedButton.icon(
-              onPressed: onSnooze,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black87,
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (isRinging) ...[
+                FilledButton.icon(
+                  onPressed: onSnooze,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: bannerColor,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  ),
+                  icon: const Icon(Icons.snooze, size: 14),
+                  label: Text('Snooze (${snoozeMinutes}m)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
+              ],
+              OutlinedButton.icon(
+                onPressed: onDismiss,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white, width: 1.2),
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                ),
+                icon: const Icon(Icons.check, size: 14),
+                label: const Text('Dismiss', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               ),
-              icon: const Icon(Icons.snooze, size: 18),
-              label: Text('Snooze (${snoozeMinutes}m)'),
-            ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: onDismiss,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white),
-            ),
-            icon: const Icon(Icons.check, size: 18),
-            label: const Text('Dismiss'),
+            ],
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'controllers/battery_alarm_controller.dart';
 import 'services/battery_service.dart';
 import 'services/tray_window_service.dart';
+import 'theme/app_theme.dart';
 import 'ui/dashboard_screen.dart';
 
 void main() async {
@@ -57,16 +58,8 @@ class BatteryAlarmApp extends StatelessWidget {
       title: 'Battery Alarm Monitor',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
-        brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
-        brightness: Brightness.dark,
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       home: DashboardScreen(
         controller: controller,
         onMinimizeToTray: () => trayService.minimizeToTray(),

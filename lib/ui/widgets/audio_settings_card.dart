@@ -51,13 +51,8 @@ class AudioSettingsCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -69,13 +64,14 @@ class AudioSettingsCard extends StatelessWidget {
                     Icon(
                       Icons.volume_up_outlined,
                       color: theme.colorScheme.primary,
-                      size: 22,
+                      size: 18,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Alarm Sound & Volume',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.1,
                       ),
                     ),
                   ],
@@ -83,21 +79,29 @@ class AudioSettingsCard extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: isTesting ? null : onTestAlarm,
                   icon: Icon(
-                    isTesting ? Icons.hourglass_top : Icons.play_arrow,
-                    size: 18,
+                    isTesting ? Icons.hourglass_top : Icons.play_arrow_rounded,
+                    size: 15,
                   ),
-                  label: Text(isTesting ? 'Playing (3s)...' : 'Test Alarm'),
+                  label: Text(
+                    isTesting ? 'Playing (3s)...' : 'Test Alarm',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Sound Preset Selector
             DropdownButtonFormField<String>(
               initialValue: selectedSound,
+              isDense: true,
+              style: theme.textTheme.bodyMedium,
               decoration: const InputDecoration(
                 labelText: 'Alarm Sound Preset',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
               items: const [
                 DropdownMenuItem(value: 'siren', child: Text('Urgent Siren (Oscillating)')),
@@ -114,30 +118,45 @@ class AudioSettingsCard extends StatelessWidget {
               },
             ),
             if (selectedSound == 'custom' && customSoundPath != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.audio_file, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      customSoundPath!.split('/').last,
-                      style: theme.textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.audio_file, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        customSoundPath!.split('/').last,
+                        style: theme.textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () => _pickCustomAudio(context),
-                    child: const Text('Change File'),
-                  ),
-                ],
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                      ),
+                      onPressed: () => _pickCustomAudio(context),
+                      child: const Text('Change File', style: TextStyle(fontSize: 11)),
+                    ),
+                  ],
+                ),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             // Volume Slider
             Row(
               children: [
-                const Icon(Icons.volume_down, size: 20),
+                Icon(
+                  Icons.volume_down_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 Expanded(
                   child: Slider(
                     value: volume,
@@ -148,41 +167,66 @@ class AudioSettingsCard extends StatelessWidget {
                     onChanged: onVolumeChanged,
                   ),
                 ),
-                const Icon(Icons.volume_up, size: 20),
+                Icon(
+                  Icons.volume_up_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 44,
+                Container(
+                  width: 36,
+                  alignment: Alignment.centerRight,
                   child: Text(
                     '${(volume * 100).round()}%',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             // Snooze Duration
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.snooze, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('Snooze Duration:'),
+                    Icon(
+                      Icons.snooze_rounded,
+                      size: 17,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Snooze Duration:',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
-                DropdownButton<int>(
-                  value: snoozeMinutes,
-                  underline: const SizedBox(),
-                  items: const [
-                    DropdownMenuItem(value: 2, child: Text('2 minutes')),
-                    DropdownMenuItem(value: 5, child: Text('5 minutes')),
-                    DropdownMenuItem(value: 10, child: Text('10 minutes')),
-                    DropdownMenuItem(value: 15, child: Text('15 minutes')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) onSnoozeChanged(val);
-                  },
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: snoozeMinutes,
+                    isDense: true,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 2, child: Text('2 minutes')),
+                      DropdownMenuItem(value: 5, child: Text('5 minutes')),
+                      DropdownMenuItem(value: 10, child: Text('10 minutes')),
+                      DropdownMenuItem(value: 15, child: Text('15 minutes')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) onSnoozeChanged(val);
+                    },
+                  ),
                 ),
               ],
             ),
