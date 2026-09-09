@@ -26,11 +26,19 @@ class DashboardScreen extends StatelessWidget {
           appBar: AppBar(
             title: Row(
               children: [
-                Icon(
-                  Icons.battery_charging_full,
-                  color: theme.colorScheme.primary,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/icons/app_logo.png',
+                    width: 30,
+                    height: 30,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.battery_charging_full,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 const Text(
                   'Battery Alarm Monitor',
                   style: TextStyle(fontWeight: FontWeight.bold),
