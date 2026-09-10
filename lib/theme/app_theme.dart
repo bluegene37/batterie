@@ -88,12 +88,12 @@ class AppTheme {
   static final bool isMacOS = !kIsWeb && Platform.isMacOS;
 
   static ThemeData get lightTheme => buildTheme(
-        visualTheme: AppVisualTheme.macGlass,
+        visualTheme: AppVisualTheme.paperInk,
         brightness: Brightness.light,
       );
 
   static ThemeData get darkTheme => buildTheme(
-        visualTheme: AppVisualTheme.macGlass,
+        visualTheme: AppVisualTheme.paperInk,
         brightness: Brightness.dark,
       );
 
@@ -222,7 +222,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: isDark ? Brightness.dark : Brightness.light,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: isMacOS ? bg.withValues(alpha: isDark ? 0.75 : 0.85) : bg,
+      scaffoldBackgroundColor: bg,
       canvasColor: bg,
       fontFamily: 'Literata',
       appBarTheme: AppBarTheme(

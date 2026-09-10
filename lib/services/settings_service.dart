@@ -83,10 +83,10 @@ class SettingsService {
   Future<AppVisualTheme> loadVisualTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString(_keyVisualTheme);
-    if (name == 'paperInk') {
-      return AppVisualTheme.paperInk;
+    if (name == 'macGlass') {
+      return AppVisualTheme.macGlass;
     }
-    return AppVisualTheme.macGlass;
+    return AppVisualTheme.paperInk;
   }
 
   Future<void> saveVisualTheme(AppVisualTheme theme) async {

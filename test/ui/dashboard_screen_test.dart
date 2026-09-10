@@ -99,14 +99,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Default theme is macGlass
-    expect(find.text('Glass'), findsOneWidget);
+    // Default theme is paperInk
     expect(find.text('Paper'), findsOneWidget);
-
-    // Tap Paper theme
-    await tester.tap(find.text('Paper'));
-    await tester.pumpAndSettle();
-
+    expect(find.text('Glass'), findsOneWidget);
     expect(controller.visualTheme.name, 'paperInk');
 
     // Tap Glass theme
@@ -114,5 +109,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.visualTheme.name, 'macGlass');
+
+    // Tap Paper theme
+    await tester.tap(find.text('Paper'));
+    await tester.pumpAndSettle();
+
+    expect(controller.visualTheme.name, 'paperInk');
   });
 }

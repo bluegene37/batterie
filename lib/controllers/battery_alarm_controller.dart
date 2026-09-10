@@ -28,7 +28,7 @@ class BatteryAlarmController extends ChangeNotifier {
   String _defaultSound = 'siren';
   String? _customSoundPath;
   int _snoozeMinutes = 5;
-  AppVisualTheme _visualTheme = AppVisualTheme.macGlass;
+  AppVisualTheme _visualTheme = AppVisualTheme.paperInk;
 
   // Anti-flapping hysteresis tracking
   String? _lastDismissedRuleId;

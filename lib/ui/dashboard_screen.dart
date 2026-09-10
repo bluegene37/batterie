@@ -86,16 +86,16 @@ class DashboardScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _ThemePillButton(
-                      label: 'Glass',
-                      icon: CupertinoIcons.sparkles,
-                      isSelected: isMacGlass,
-                      onTap: () => controller.setVisualTheme(AppVisualTheme.macGlass),
-                    ),
-                    _ThemePillButton(
                       label: 'Paper',
                       icon: CupertinoIcons.book,
                       isSelected: !isMacGlass,
                       onTap: () => controller.setVisualTheme(AppVisualTheme.paperInk),
+                    ),
+                    _ThemePillButton(
+                      label: 'Glass',
+                      icon: CupertinoIcons.sparkles,
+                      isSelected: isMacGlass,
+                      onTap: () => controller.setVisualTheme(AppVisualTheme.macGlass),
                     ),
                   ],
                 ),
