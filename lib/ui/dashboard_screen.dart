@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import '../controllers/battery_alarm_controller.dart';
+import '../theme/app_theme.dart';
 import 'widgets/active_alarm_banner.dart';
 import 'widgets/audio_settings_card.dart';
 import 'widgets/battery_gauge.dart';
@@ -22,10 +24,18 @@ class DashboardScreen extends StatelessWidget {
       builder: (context, _) {
         final theme = Theme.of(context);
 
+        // With the native title bar hidden (glass window) the traffic lights
+        // sit at the top-left, so the title moves right of them and the bar
+        // itself becomes the drag handle.
+        final glass = AppTheme.glass;
+
         return Scaffold(
           appBar: AppBar(
-            toolbarHeight: 46,
-            titleSpacing: 12,
+            toolbarHeight: glass ? 38 : 46,
+            titleSpacing: glass ? 72 : 12,
+            flexibleSpace: glass
+                ? const DragToMoveArea(child: SizedBox.expand())
+                : null,
             title: Row(
               children: [
                 ClipRRect(

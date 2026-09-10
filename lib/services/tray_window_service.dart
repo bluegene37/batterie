@@ -27,13 +27,18 @@ class TrayWindowService with TrayListener, WindowListener {
       await windowManager.ensureInitialized();
       windowManager.addListener(this);
 
-      const windowOptions = WindowOptions(
-        size: Size(380, 600),
-        minimumSize: Size(340, 520),
+      final windowOptions = WindowOptions(
+        size: const Size(380, 600),
+        minimumSize: const Size(340, 520),
         center: true,
         backgroundColor: Colors.transparent,
         skipTaskbar: false,
         title: 'Batterie',
+        // On macOS the window is frosted glass; hiding the title bar lets the
+        // glass run edge to edge under the traffic lights.
+        titleBarStyle:
+            Platform.isMacOS ? TitleBarStyle.hidden : TitleBarStyle.normal,
+        windowButtonVisibility: true,
       );
 
       await windowManager.waitUntilReadyToShow(windowOptions, () async {

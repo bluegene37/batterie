@@ -1,39 +1,88 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-/// Coffee & Cream color palette inspired by files_utility & activity_timer.
+/// Paper & Ink palette, taken from genexis.dev.
+///
+/// Light mode is warm paper with ink text and a single red ("lead") accent.
+/// Dark mode inverts it: ink surfaces with paper text.
 class AppColors {
   AppColors._();
 
-  // Dark Roast (Mocha & Espresso)
-  static const Color darkBg = Color(0xFF201B17);
-  static const Color darkSurface = Color(0xFF2C2520);
-  static const Color darkSurfaceHigh = Color(0xFF382F29);
-  static const Color darkBorder = Color(0xFF493E35);
+  // Paper (light surfaces)
+  static const Color paper = Color(0xFFF2EDE3);
+  static const Color paperRaised = Color(0xFFFAF7F0);
+  static const Color paperDeep = Color(0xFFE7E0D0);
+  static const Color paperRecess = Color(0xFFDED6C4);
 
-  // Light Roast (Paper & Cream Latte)
-  static const Color lightBg = Color(0xFFF3EDE4);
-  static const Color lightSurface = Color(0xFFFAF7F2);
-  static const Color lightSurfaceHigh = Color(0xFFE8E0D2);
-  static const Color lightBorder = Color(0xFFD7CEBF);
+  // Ink (text on paper)
+  static const Color ink = Color(0xFF16161A);
+  static const Color crease = Color(0xFF2B2B2E);
+  static const Color inkSoft = Color(0xFF5A564E);
+  static const Color graphite = Color(0xFF66625A);
 
-  // Accents (Cinnamon / Terracotta Crema)
-  static const Color darkAccent = Color(0xFFD47754);
-  static const Color lightAccent = Color(0xFFB4402C);
+  // Hairlines (crease at low alpha, as on the site)
+  static const Color hairline = Color(0x2E2B2B2E);
+  static const Color hairlineFaint = Color(0x172B2B2E);
 
-  // Semantic Colors (Coffee roast inspired)
-  static const Color charging = Color(0xFF529A72); // Muted sage roast green
-  static const Color batteryWarning = Color(0xFFD98A2B); // Honey amber roast
-  static const Color batteryCritical = Color(0xFFC74838); // Terracotta roast red
+  // Lead: the one accent
+  static const Color lead = Color(0xFFB4402C);
+  static const Color leadDeep = Color(0xFF8E3122);
+  static const Color leadWash = Color(0x1AB4402C);
 
-  // Text Colors (Dark)
-  static const Color darkTextPrimary = Color(0xFFFAF7F0);
-  static const Color darkTextSecondary = Color(0xFFD5CCB8);
-  static const Color darkTextMuted = Color(0xFF9C9184);
+  // Ink surfaces (dark mode)
+  static const Color inkBg = Color(0xFF16161A);
+  static const Color inkRaised = Color(0xFF212125);
+  static const Color inkDeep = Color(0xFF2B2B2E);
+  static const Color inkRecess = Color(0xFF35353A);
 
-  // Text Colors (Light)
-  static const Color lightTextPrimary = Color(0xFF1E1B17);
-  static const Color lightTextSecondary = Color(0xFF5A5248);
-  static const Color lightTextMuted = Color(0xFF7C7265);
+  // Paper text (dark mode)
+  static const Color paperText = Color(0xFFF2EDE3);
+  static const Color paperSoft = Color(0xFFB9B3A6);
+  static const Color paperMuted = Color(0xFF8A857A);
+  static const Color hairlineDark = Color(0x26F2EDE3);
+  static const Color leadLight = Color(0xFFD4674F);
+
+  // Semantic (battery states), tuned to sit on paper
+  static const Color charging = Color(0xFF4F8A63);
+  static const Color batteryWarning = Color(0xFFB8862B);
+  static const Color batteryCritical = lead;
+}
+
+/// One set of roles the theme is built from; light and dark each supply one.
+class _Palette {
+  const _Palette({
+    required this.brightness,
+    required this.bg,
+    required this.surface,
+    required this.surfaceHigh,
+    required this.recess,
+    required this.border,
+    required this.accent,
+    required this.onAccent,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.bgGlassAlpha,
+    required this.surfaceGlassAlpha,
+  });
+
+  final Brightness brightness;
+  final Color bg;
+  final Color surface;
+  final Color surfaceHigh;
+  final Color recess;
+  final Color border;
+  final Color accent;
+  final Color onAccent;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+
+  /// How much of the window background is paint vs. frosted glass.
+  final double bgGlassAlpha;
+  final double surfaceGlassAlpha;
 }
 
 class AppTheme {
@@ -42,86 +91,131 @@ class AppTheme {
   static const double cardRadius = 14.0;
   static const double controlRadius = 10.0;
 
-  static ThemeData get lightTheme {
-    const colorScheme = ColorScheme.light(
-      primary: AppColors.lightAccent,
-      onPrimary: Colors.white,
+  /// True where the native window is frosted glass (macOS vibrancy).
+  /// Backgrounds are painted translucent so the glass shows through;
+  /// everywhere else the same palette is painted opaque.
+  static final bool glass = !kIsWeb && Platform.isMacOS;
+
+  static const _Palette _light = _Palette(
+    brightness: Brightness.light,
+    bg: AppColors.paper,
+    surface: AppColors.paperRaised,
+    surfaceHigh: AppColors.paperDeep,
+    recess: AppColors.paperRecess,
+    border: AppColors.hairline,
+    accent: AppColors.lead,
+    onAccent: AppColors.paperRaised,
+    textPrimary: AppColors.ink,
+    textSecondary: AppColors.inkSoft,
+    textMuted: AppColors.graphite,
+    bgGlassAlpha: 0.42,
+    surfaceGlassAlpha: 0.50,
+  );
+
+  static const _Palette _dark = _Palette(
+    brightness: Brightness.dark,
+    bg: AppColors.inkBg,
+    surface: AppColors.inkRaised,
+    surfaceHigh: AppColors.inkDeep,
+    recess: AppColors.inkRecess,
+    border: AppColors.hairlineDark,
+    accent: AppColors.leadLight,
+    onAccent: AppColors.inkBg,
+    textPrimary: AppColors.paperText,
+    textSecondary: AppColors.paperSoft,
+    textMuted: AppColors.paperMuted,
+    bgGlassAlpha: 0.28,
+    surfaceGlassAlpha: 0.32,
+  );
+
+  static ThemeData get lightTheme => _build(_light);
+  static ThemeData get darkTheme => _build(_dark);
+
+  static Color _tint(Color color, double alpha) =>
+      glass ? color.withValues(alpha: alpha) : color;
+
+  static ThemeData _build(_Palette p) {
+    final bg = _tint(p.bg, p.bgGlassAlpha);
+    final surface = _tint(p.surface, p.surfaceGlassAlpha);
+
+    final colorScheme = ColorScheme(
+      brightness: p.brightness,
+      primary: p.accent,
+      onPrimary: p.onAccent,
       secondary: AppColors.charging,
-      onSecondary: Colors.white,
-      surface: AppColors.lightSurface,
-      onSurface: AppColors.lightTextPrimary,
-      surfaceContainerHighest: AppColors.lightSurfaceHigh,
-      onSurfaceVariant: AppColors.lightTextSecondary,
-      outline: AppColors.lightBorder,
-      outlineVariant: AppColors.lightBorder,
+      onSecondary: p.onAccent,
+      surface: p.surface,
+      onSurface: p.textPrimary,
+      surfaceContainerHighest: p.surfaceHigh,
+      onSurfaceVariant: p.textSecondary,
+      outline: p.border,
+      outlineVariant: p.border,
       error: AppColors.batteryCritical,
-      onError: Colors.white,
+      onError: p.onAccent,
     );
+
+    OutlineInputBorder inputBorder(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(controlRadius),
+          borderSide: BorderSide(color: color, width: width),
+        );
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
+      brightness: p.brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.lightBg,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.lightBg,
-        foregroundColor: AppColors.lightTextPrimary,
+      scaffoldBackgroundColor: bg,
+      canvasColor: bg,
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        foregroundColor: p.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.lightSurface,
+        color: surface,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius),
-          side: const BorderSide(color: AppColors.lightBorder, width: 1),
+          side: BorderSide(color: p.border, width: 1),
         ),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: AppColors.lightAccent,
-        inactiveTrackColor: AppColors.lightBorder,
-        thumbColor: AppColors.lightAccent,
-        overlayColor: AppColors.lightAccent.withValues(alpha: 0.15),
+        activeTrackColor: p.accent,
+        inactiveTrackColor: p.recess,
+        thumbColor: p.accent,
+        overlayColor: p.accent.withValues(alpha: 0.15),
         trackHeight: 4,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return Colors.white;
+            return p.onAccent;
           }
-          return AppColors.lightTextMuted;
+          return p.textMuted;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.lightAccent;
+            return p.accent;
           }
-          return AppColors.lightSurfaceHigh;
+          return p.recess;
         }),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.lightSurfaceHigh.withValues(alpha: 0.6),
+        fillColor: p.surfaceHigh.withValues(alpha: 0.6),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: const BorderSide(color: AppColors.lightBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: const BorderSide(color: AppColors.lightBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: const BorderSide(color: AppColors.lightAccent, width: 1.5),
-        ),
+        border: inputBorder(p.border),
+        enabledBorder: inputBorder(p.border),
+        focusedBorder: inputBorder(p.accent, 1.5),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.lightAccent,
-          foregroundColor: Colors.white,
+          backgroundColor: p.accent,
+          foregroundColor: p.onAccent,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(controlRadius),
@@ -129,103 +223,8 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         ),
       ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.lightBorder,
-        thickness: 0.8,
-        space: 1,
-      ),
-    );
-  }
-
-  static ThemeData get darkTheme {
-    const colorScheme = ColorScheme.dark(
-      primary: AppColors.darkAccent,
-      onPrimary: AppColors.darkBg,
-      secondary: AppColors.charging,
-      onSecondary: AppColors.darkBg,
-      surface: AppColors.darkSurface,
-      onSurface: AppColors.darkTextPrimary,
-      surfaceContainerHighest: AppColors.darkSurfaceHigh,
-      onSurfaceVariant: AppColors.darkTextSecondary,
-      outline: AppColors.darkBorder,
-      outlineVariant: AppColors.darkBorder,
-      error: AppColors.batteryCritical,
-      onError: AppColors.darkBg,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.darkBg,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.darkBg,
-        foregroundColor: AppColors.darkTextPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.darkSurface,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
-          side: const BorderSide(color: AppColors.darkBorder, width: 1),
-        ),
-      ),
-      sliderTheme: SliderThemeData(
-        activeTrackColor: AppColors.darkAccent,
-        inactiveTrackColor: AppColors.darkSurfaceHigh,
-        thumbColor: AppColors.darkAccent,
-        overlayColor: AppColors.darkAccent.withValues(alpha: 0.2),
-        trackHeight: 4,
-      ),
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return AppColors.darkBg;
-          }
-          return AppColors.darkTextMuted;
-        }),
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return AppColors.darkAccent;
-          }
-          return AppColors.darkSurfaceHigh;
-        }),
-        trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.darkSurfaceHigh.withValues(alpha: 0.5),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: const BorderSide(color: AppColors.darkBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: const BorderSide(color: AppColors.darkBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: const BorderSide(color: AppColors.darkAccent, width: 1.5),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.darkAccent,
-          foregroundColor: AppColors.darkBg,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        ),
-      ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.darkBorder,
+      dividerTheme: DividerThemeData(
+        color: p.border,
         thickness: 0.8,
         space: 1,
       ),
