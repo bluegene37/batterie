@@ -54,16 +54,28 @@ class BatteryAlarmApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Battery Alarm Monitor',
-      debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      home: DashboardScreen(
-        controller: controller,
-        onMinimizeToTray: () => trayService.minimizeToTray(),
-      ),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final visualTheme = controller.visualTheme;
+        return MaterialApp(
+          title: 'Battery Alarm Monitor',
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.system,
+          theme: AppTheme.buildTheme(
+            visualTheme: visualTheme,
+            brightness: Brightness.light,
+          ),
+          darkTheme: AppTheme.buildTheme(
+            visualTheme: visualTheme,
+            brightness: Brightness.dark,
+          ),
+          home: DashboardScreen(
+            controller: controller,
+            onMinimizeToTray: () => trayService.minimizeToTray(),
+          ),
+        );
+      },
     );
   }
 }

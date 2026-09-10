@@ -36,6 +36,11 @@ class MainFlutterWindow: NSWindow {
 
     isOpaque = false
     backgroundColor = .clear
+    titlebarAppearsTransparent = true
+    titleVisibility = .hidden
+    styleMask.insert(.fullSizeContentView)
+    isMovableByWindowBackground = true
+    hasShadow = true
 
     RegisterGeneratedPlugins(registry: glassViewController.flutterViewController)
 

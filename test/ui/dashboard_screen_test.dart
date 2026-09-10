@@ -78,4 +78,41 @@ void main() {
     expect(find.text('Snooze (5m)'), findsOneWidget);
     expect(find.text('Dismiss'), findsOneWidget);
   });
+
+  testWidgets('DashboardScreen allows switching visual themes (Glass vs Paper)', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final mockAlarm = MockAlarmService();
+    final settingsService = SettingsService();
+    final controller = BatteryAlarmController(
+      alarmService: mockAlarm,
+      settingsService: settingsService,
+    );
+    await controller.init();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DashboardScreen(
+          controller: controller,
+          onMinimizeToTray: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Default theme is macGlass
+    expect(find.text('Glass'), findsOneWidget);
+    expect(find.text('Paper'), findsOneWidget);
+
+    // Tap Paper theme
+    await tester.tap(find.text('Paper'));
+    await tester.pumpAndSettle();
+
+    expect(controller.visualTheme.name, 'paperInk');
+
+    // Tap Glass theme
+    await tester.tap(find.text('Glass'));
+    await tester.pumpAndSettle();
+
+    expect(controller.visualTheme.name, 'macGlass');
+  });
 }

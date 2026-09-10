@@ -6,6 +6,7 @@ import '../models/threshold_rule.dart';
 import '../services/alarm_service.dart';
 import '../services/battery_service.dart';
 import '../services/settings_service.dart';
+import '../theme/app_theme.dart';
 
 class BatteryAlarmController extends ChangeNotifier {
   final BatteryService? _batteryService;
@@ -27,6 +28,7 @@ class BatteryAlarmController extends ChangeNotifier {
   String _defaultSound = 'siren';
   String? _customSoundPath;
   int _snoozeMinutes = 5;
+  AppVisualTheme _visualTheme = AppVisualTheme.macGlass;
 
   // Anti-flapping hysteresis tracking
   String? _lastDismissedRuleId;
@@ -51,12 +53,14 @@ class BatteryAlarmController extends ChangeNotifier {
   String? get customSoundPath => _customSoundPath;
   int get snoozeMinutes => _snoozeMinutes;
   bool get isTesting => _isTesting;
+  AppVisualTheme get visualTheme => _visualTheme;
 
   Future<void> init() async {
     _thresholdRules = await _settingsService.loadThresholds();
     _volume = await _settingsService.loadVolume();
     _defaultSound = await _settingsService.loadDefaultSound();
     _snoozeMinutes = await _settingsService.loadSnoozeMinutes();
+    _visualTheme = await _settingsService.loadVisualTheme();
 
     if (_batteryService != null) {
       _batteryInfo = _batteryService.currentInfo;
@@ -236,6 +240,12 @@ class BatteryAlarmController extends ChangeNotifier {
   Future<void> setSnoozeMinutes(int minutes) async {
     _snoozeMinutes = minutes;
     await _settingsService.saveSnoozeMinutes(minutes);
+    notifyListeners();
+  }
+
+  Future<void> setVisualTheme(AppVisualTheme theme) async {
+    _visualTheme = theme;
+    await _settingsService.saveVisualTheme(theme);
     notifyListeners();
   }
 

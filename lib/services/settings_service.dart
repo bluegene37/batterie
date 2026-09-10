@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/threshold_rule.dart';
+import '../theme/app_theme.dart';
 
 class SettingsService {
   static const String _keyThresholds = 'threshold_rules';
   static const String _keyVolume = 'alarm_volume';
   static const String _keyDefaultSound = 'alarm_default_sound';
   static const String _keySnoozeMinutes = 'alarm_snooze_minutes';
+  static const String _keyVisualTheme = 'app_visual_theme';
 
   static const List<ThresholdRule> defaultThresholds = [
     ThresholdRule(
@@ -76,5 +78,19 @@ class SettingsService {
   Future<void> saveSnoozeMinutes(int minutes) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keySnoozeMinutes, minutes);
+  }
+
+  Future<AppVisualTheme> loadVisualTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString(_keyVisualTheme);
+    if (name == 'paperInk') {
+      return AppVisualTheme.paperInk;
+    }
+    return AppVisualTheme.macGlass;
+  }
+
+  Future<void> saveVisualTheme(AppVisualTheme theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyVisualTheme, theme.name);
   }
 }
