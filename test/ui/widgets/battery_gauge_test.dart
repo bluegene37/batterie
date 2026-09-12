@@ -28,6 +28,8 @@ void main() {
       timeRemaining: '12:34',
     )));
     expect(tester.takeException(), isNull);
+    expect(find.text('Discharging'), findsOneWidget);
+    expect(find.text('12:34 remaining'), findsOneWidget);
   });
 
   testWidgets('does not overflow at minimum window width while charging',
@@ -42,5 +44,18 @@ void main() {
     ));
     expect(tester.takeException(), isNull);
     expect(find.text('100%'), findsOneWidget);
+    expect(find.text('Charging'), findsOneWidget);
+    expect(find.text('12:34 until full'), findsOneWidget);
+  });
+
+  testWidgets('renders status without extra text when timeRemaining is null',
+      (tester) async {
+    await tester.pumpWidget(host(const BatteryInfo(
+      percentage: 80,
+      isCharging: false,
+    )));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Discharging'), findsOneWidget);
+    expect(find.textContaining('remaining'), findsNothing);
   });
 }

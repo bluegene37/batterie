@@ -1,14 +1,15 @@
 import 'dart:convert';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/threshold_rule.dart';
-import '../theme/app_theme.dart';
 
 class SettingsService {
   static const String _keyThresholds = 'threshold_rules';
   static const String _keyVolume = 'alarm_volume';
   static const String _keyDefaultSound = 'alarm_default_sound';
   static const String _keySnoozeMinutes = 'alarm_snooze_minutes';
-  static const String _keyVisualTheme = 'app_visual_theme';
+  static const String _keyCustomSoundPath = 'alarm_custom_sound_path';
+  static const String _keyThemeMode = 'app_theme_mode';
 
   static const List<ThresholdRule> defaultThresholds = [
     ThresholdRule(
@@ -70,6 +71,21 @@ class SettingsService {
     await prefs.setString(_keyDefaultSound, sound);
   }
 
+  Future<String?> loadCustomSoundPath() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString(_keyCustomSoundPath);
+    return (path == null || path.isEmpty) ? null : path;
+  }
+
+  Future<void> saveCustomSoundPath(String? path) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (path == null || path.isEmpty) {
+      await prefs.remove(_keyCustomSoundPath);
+    } else {
+      await prefs.setString(_keyCustomSoundPath, path);
+    }
+  }
+
   Future<int> loadSnoozeMinutes() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_keySnoozeMinutes) ?? 5;
@@ -80,17 +96,22 @@ class SettingsService {
     await prefs.setInt(_keySnoozeMinutes, minutes);
   }
 
-  Future<AppVisualTheme> loadVisualTheme() async {
+  Future<ThemeMode> loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString(_keyVisualTheme);
-    if (name == 'macGlass') {
-      return AppVisualTheme.macGlass;
+    final modeStr = prefs.getString(_keyThemeMode);
+    switch (modeStr) {
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      case 'light':
+      default:
+        return ThemeMode.light;
     }
-    return AppVisualTheme.paperInk;
   }
 
-  Future<void> saveVisualTheme(AppVisualTheme theme) async {
+  Future<void> saveThemeMode(ThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyVisualTheme, theme.name);
+    await prefs.setString(_keyThemeMode, mode.name);
   }
 }

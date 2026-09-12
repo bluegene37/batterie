@@ -1,8 +1,8 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../services/alarm_service.dart';
 import '../../theme/app_theme.dart';
-import 'glass_surface.dart';
+import 'paper_surface.dart';
 
 class AudioSettingsCard extends StatelessWidget {
   final String selectedSound;
@@ -15,7 +15,6 @@ class AudioSettingsCard extends StatelessWidget {
   final Function(double volume) onVolumeChanged;
   final Function(int minutes) onSnoozeChanged;
   final VoidCallback onTestAlarm;
-  final AppVisualTheme visualTheme;
 
   const AudioSettingsCard({
     super.key,
@@ -29,7 +28,6 @@ class AudioSettingsCard extends StatelessWidget {
     required this.onVolumeChanged,
     required this.onSnoozeChanged,
     required this.onTestAlarm,
-    this.visualTheme = AppVisualTheme.macGlass,
   });
 
   Future<void> _pickCustomAudio(BuildContext context) async {
@@ -54,10 +52,8 @@ class AudioSettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isMacGlass = visualTheme == AppVisualTheme.macGlass;
 
-    return GlassSurface(
-      visualTheme: visualTheme,
+    return PaperSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -67,25 +63,16 @@ class AudioSettingsCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    isMacGlass
-                        ? CupertinoIcons.speaker_2
-                        : Icons.volume_up_outlined,
+                    Icons.volume_up_outlined,
                     color: theme.colorScheme.primary,
                     size: 17,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Alarm Sound & Volume',
-                    style: isMacGlass
-                        ? theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          )
-                        : const TextStyle(
-                            fontFamily: 'Literata',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -95,10 +82,7 @@ class AudioSettingsCard extends StatelessWidget {
                   isTesting ? Icons.hourglass_top : Icons.play_arrow_rounded,
                   size: 14,
                 ),
-                label: Text(
-                  isTesting ? 'Playing (3s)...' : 'Test Alarm',
-                  style: const TextStyle(fontSize: 11.5),
-                ),
+                label: Text(isTesting ? 'Playing (3s)...' : 'Test Alarm'),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   visualDensity: VisualDensity.compact,
@@ -111,23 +95,15 @@ class AudioSettingsCard extends StatelessWidget {
           DropdownButtonFormField<String>(
             initialValue: selectedSound,
             isDense: true,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 13,
-              letterSpacing: isMacGlass ? -0.2 : 0.0,
+            style: theme.textTheme.bodyMedium,
+            decoration: const InputDecoration(
+              labelText: 'Default sound (new thresholds & Test Alarm)',
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
-            decoration: InputDecoration(
-              labelText: 'Alarm Sound Preset',
-              labelStyle: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-            items: const [
-              DropdownMenuItem(value: 'siren', child: Text('Urgent Siren (Oscillating)')),
-              DropdownMenuItem(value: 'digital', child: Text('Digital Alarm (Rapid Beeps)')),
-              DropdownMenuItem(value: 'bell', child: Text('Alert Bell (Sharp Strike)')),
-              DropdownMenuItem(value: 'custom', child: Text('Custom Audio File...')),
+            items: [
+              for (final entry in AlarmService.presetLabels.entries)
+                DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+              const DropdownMenuItem(value: 'custom', child: Text('Custom Audio File…')),
             ],
             onChanged: (val) {
               if (val == 'custom') {
@@ -143,11 +119,8 @@ class AudioSettingsCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(isMacGlass ? 8 : 2),
-                border: Border.all(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  width: 0.8,
-                ),
+                borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+                border: Border.all(color: theme.colorScheme.outline, width: 1.0),
               ),
               child: Row(
                 children: [
@@ -156,7 +129,7 @@ class AudioSettingsCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       customSoundPath!.split('/').last,
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                      style: theme.textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -166,7 +139,7 @@ class AudioSettingsCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                     ),
                     onPressed: () => _pickCustomAudio(context),
-                    child: const Text('Change File', style: TextStyle(fontSize: 11)),
+                    child: const Text('Change File'),
                   ),
                 ],
               ),
@@ -177,7 +150,7 @@ class AudioSettingsCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                isMacGlass ? CupertinoIcons.speaker : Icons.volume_down_rounded,
+                Icons.volume_down_rounded,
                 size: 16,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -192,7 +165,7 @@ class AudioSettingsCard extends StatelessWidget {
                 ),
               ),
               Icon(
-                isMacGlass ? CupertinoIcons.speaker_3 : Icons.volume_up_rounded,
+                Icons.volume_up_rounded,
                 size: 16,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -202,9 +175,8 @@ class AudioSettingsCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Text(
                   '${(volume * 100).round()}%',
-                  style: TextStyle(
+                  style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    fontSize: 12,
                     color: theme.colorScheme.primary,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -220,7 +192,7 @@ class AudioSettingsCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    isMacGlass ? CupertinoIcons.moon_zzz : Icons.snooze_rounded,
+                    Icons.snooze_rounded,
                     size: 15,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -229,8 +201,6 @@ class AudioSettingsCard extends StatelessWidget {
                     'Snooze Duration:',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 11.5,
-                      letterSpacing: isMacGlass ? -0.1 : 0.0,
                     ),
                   ),
                 ],
@@ -242,7 +212,6 @@ class AudioSettingsCard extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: theme.colorScheme.primary,
-                    fontSize: 12,
                   ),
                   items: const [
                     DropdownMenuItem(value: 2, child: Text('2 minutes')),

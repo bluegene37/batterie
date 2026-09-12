@@ -17,16 +17,23 @@ void main() async {
   await trayService.init(
     onShow: () {},
     onTest: () => controller.testAlarm(),
+    onToggleTheme: () => controller.toggleThemeMode(),
     onQuit: () {
       controller.dispose();
       batteryService.dispose();
     },
   );
 
-  // Hook controller to tray & window
+  // Hook controller to tray & window: ringing takes the window over
+  // (always on top, every Space, menu bar + Dock flags); ending it restores
+  // a normal window.
   controller.onAlarmTriggered = () async {
-    await trayService.bringToFront();
+    await trayService.enterAlarmMode(controller.batteryInfo);
     await trayService.updateTray(controller.batteryInfo, true);
+  };
+  controller.onAlarmEnded = () async {
+    await trayService.exitAlarmMode();
+    await trayService.updateTray(controller.batteryInfo, false);
   };
 
   controller.addListener(() {
@@ -57,21 +64,15 @@ class BatteryAlarmApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
-        final visualTheme = controller.visualTheme;
         return MaterialApp(
           title: 'Battery Alarm Monitor',
           debugShowCheckedModeBanner: false,
-          themeMode: ThemeMode.system,
-          theme: AppTheme.buildTheme(
-            visualTheme: visualTheme,
-            brightness: Brightness.light,
-          ),
-          darkTheme: AppTheme.buildTheme(
-            visualTheme: visualTheme,
-            brightness: Brightness.dark,
-          ),
+          themeMode: controller.themeMode,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
           home: DashboardScreen(
             controller: controller,
+            trayService: trayService,
             onMinimizeToTray: () => trayService.minimizeToTray(),
           ),
         );

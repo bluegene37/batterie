@@ -30,7 +30,9 @@
   * Minimizes cleanly to the macOS menu bar or Windows system tray.
   * Shows live battery status tooltip in the tray.
   * Closing the window keeps monitoring active in the background.
-  * Automatically un-minimizes, shows, and focuses the app window with an urgent alert banner when an alarm triggers.
+  * **Alarm takeover**: when a threshold fires, the window jumps to the front on every Space (even over full-screen apps), stays on top, and the whole window becomes a pulsing red alarm screen with the live percentage and big Snooze / Dismiss buttons. Everything returns to normal the moment the alarm stops.
+  * **Menu bar & Dock signals**: while ringing, the menu bar shows `⚠ 12%` next to the tray icon and the Dock icon gets a badge, so the alarm is visible even when the window is hidden.
+  * **Per-threshold sounds**: every threshold picks its own preset or custom audio file, with a Preview button right in the Add / Edit dialog.
 * **Adaptive Power-Saving**: Checks every 5 seconds while on battery, and automatically throttles to 20 seconds when connected to AC power (<0.1% CPU usage).
 
 ---
@@ -55,7 +57,8 @@ lib/
     ├── dashboard_screen.dart          # Desktop dashboard screen
     └── widgets/
         ├── battery_gauge.dart         # Real-time battery indicator
-        ├── active_alarm_banner.dart   # Urgent pulsing banner with Snooze/Dismiss
+        ├── active_alarm_banner.dart   # Snoozed-state banner with Dismiss
+        ├── alarm_takeover.dart        # Full-window pulsing alarm screen while ringing
         ├── threshold_list.dart        # Add/edit/delete/toggle threshold cards
         └── audio_settings_card.dart   # Preset selector, file picker, volume slider
 ```

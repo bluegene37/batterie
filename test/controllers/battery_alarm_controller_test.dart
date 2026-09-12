@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:batterie/controllers/battery_alarm_controller.dart';
@@ -10,7 +11,10 @@ class MockAlarmService extends AlarmService {
   bool alarmStarted = false;
   bool alarmStopped = false;
   String? lastSound;
+  String? lastCustomPath;
   double? lastVolume;
+  String? previewedSound;
+  String? previewedCustomPath;
 
   @override
   bool get isRinging => alarmStarted && !alarmStopped;
@@ -24,7 +28,21 @@ class MockAlarmService extends AlarmService {
     alarmStarted = true;
     alarmStopped = false;
     lastSound = soundType;
+    lastCustomPath = customPath;
     lastVolume = volume;
+  }
+
+  @override
+  Future<void> testAlarm({
+    required String soundType,
+    String? customPath,
+    double volume = 1.0,
+    Duration duration = const Duration(seconds: 3),
+    VoidCallback? onComplete,
+  }) async {
+    previewedSound = soundType;
+    previewedCustomPath = customPath;
+    onComplete?.call();
   }
 
   @override
@@ -179,6 +197,116 @@ void main() {
       await controller.removeThreshold(rule15.id);
       expect(controller.thresholdRules.length, equals(2));
       expect(controller.thresholdRules.any((r) => r.id == rule15.id), isFalse);
+    });
+
+    test('addThreshold accepts an explicit sound and custom file per rule', () async {
+      await controller.addThreshold(
+        30,
+        'Bell rule',
+        soundType: 'bell',
+        customSoundPath: null,
+      );
+      final bellRule = controller.thresholdRules.firstWhere((r) => r.percentage == 30);
+      expect(bellRule.soundType, equals('bell'));
+
+      await controller.addThreshold(
+        35,
+        'Custom rule',
+        soundType: 'custom',
+        customSoundPath: '/tmp/my.mp3',
+      );
+      final customRule = controller.thresholdRules.firstWhere((r) => r.percentage == 35);
+      expect(customRule.soundType, equals('custom'));
+      expect(customRule.customSoundPath, equals('/tmp/my.mp3'));
+    });
+
+    test('Ringing rule plays its own sound and custom file', () async {
+      await controller.addThreshold(
+        40,
+        'Custom rule',
+        soundType: 'custom',
+        customSoundPath: '/tmp/my.mp3',
+      );
+      controller.evaluateBattery(const BatteryInfo(
+        percentage: 40,
+        isCharging: false,
+        source: PowerSource.battery,
+      ));
+      expect(controller.alarmState.isRinging, isTrue);
+      expect(mockAlarm.lastSound, equals('custom'));
+      expect(mockAlarm.lastCustomPath, equals('/tmp/my.mp3'));
+    });
+
+    test('previewSound plays the requested sound briefly', () async {
+      await controller.previewSound(soundType: 'digital');
+      expect(mockAlarm.previewedSound, equals('digital'));
+      expect(mockAlarm.previewedCustomPath, isNull);
+
+      await controller.previewSound(soundType: 'custom', customPath: '/tmp/x.wav');
+      expect(mockAlarm.previewedSound, equals('custom'));
+      expect(mockAlarm.previewedCustomPath, equals('/tmp/x.wav'));
+    });
+
+    test('Custom default sound path is persisted and restored', () async {
+      await controller.setCustomSoundPath('/tmp/default.mp3');
+
+      final reloaded = BatteryAlarmController(
+        alarmService: MockAlarmService(),
+        settingsService: settingsService,
+      );
+      await reloaded.init();
+      expect(reloaded.customSoundPath, equals('/tmp/default.mp3'));
+    });
+
+    test('onAlarmEnded fires on dismiss, snooze, and charger connect', () {
+      int endedCount = 0;
+      controller.onAlarmEnded = () => endedCount++;
+
+      const low = BatteryInfo(percentage: 20, isCharging: false, source: PowerSource.battery);
+
+      // Dismiss
+      controller.evaluateBattery(low);
+      expect(controller.alarmState.isRinging, isTrue);
+      controller.dismiss();
+      expect(endedCount, equals(1));
+
+      // Snooze (re-arm by charging then discharging again)
+      controller.evaluateBattery(const BatteryInfo(percentage: 50, isCharging: true, source: PowerSource.ac));
+      expect(endedCount, equals(1), reason: 'nothing was ringing, so no extra callback');
+      controller.evaluateBattery(low);
+      expect(controller.alarmState.isRinging, isTrue);
+      controller.snooze();
+      expect(endedCount, equals(2));
+
+      // Charger connect while ringing
+      controller.setSimulatedSnoozeExpired();
+      controller.evaluateBattery(low);
+      expect(controller.alarmState.isRinging, isTrue);
+      controller.evaluateBattery(const BatteryInfo(percentage: 20, isCharging: true, source: PowerSource.ac));
+      expect(endedCount, equals(3));
+    });
+
+    test('ThemeMode defaults to light and can be set and toggled', () async {
+      expect(controller.themeMode, equals(ThemeMode.light));
+
+      await controller.setThemeMode(ThemeMode.dark);
+      expect(controller.themeMode, equals(ThemeMode.dark));
+
+      // Toggle from dark -> light
+      await controller.toggleThemeMode();
+      expect(controller.themeMode, equals(ThemeMode.light));
+
+      // Toggle from light -> dark
+      await controller.toggleThemeMode();
+      expect(controller.themeMode, equals(ThemeMode.dark));
+
+      // Persists across reloads
+      final reloaded = BatteryAlarmController(
+        alarmService: MockAlarmService(),
+        settingsService: settingsService,
+      );
+      await reloaded.init();
+      expect(reloaded.themeMode, equals(ThemeMode.dark));
     });
   });
 }

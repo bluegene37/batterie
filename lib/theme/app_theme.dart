@@ -2,211 +2,141 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-/// Available visual themes for the application.
-enum AppVisualTheme {
-  macGlass, // macOS Translucent Frosted Glass
-  paperInk, // genexis.dev Cotton Paper & Ink
+/// Very light coffee palette in the spirit of genexis.dev paper & ink:
+/// near-white cream paper, espresso ink, latte hairlines and a coffee-brown
+/// accent. Dark mode is a dark roast with cream text.
+///
+/// Every value here is reached through `Theme.of(context)` roles in widgets;
+/// the only direct `AppColors` reads are the semantic battery states.
+abstract class AppColors {
+  // --- Light: cream paper ---
+  static const Color paper = Color(0xFFFBF8F3);
+  static const Color paperRaised = Color(0xFFFFFDFA);
+  static const Color paperDeep = Color(0xFFF1EBE1);
+  static const Color paperRecess = Color(0xFFE8E0D3);
+
+  // Espresso ink on paper
+  static const Color ink = Color(0xFF2B211B);
+  static const Color inkSoft = Color(0xFF5E5148);
+  static const Color inkMuted = Color(0xFF7E7063);
+  static const Color hairline = Color(0x264A3B30);
+
+  // Coffee accent
+  static const Color coffee = Color(0xFF6F4E37);
+  static const Color coffeeDeep = Color(0xFF4E3626);
+
+  // --- Dark: dark roast ---
+  static const Color roast = Color(0xFF1C1714);
+  static const Color roastRaised = Color(0xFF262019);
+  static const Color roastDeep = Color(0xFF322A23);
+  static const Color roastRecess = Color(0xFF3D342C);
+
+  // Cream text on roast
+  static const Color cream = Color(0xFFF5EFE6);
+  static const Color creamSoft = Color(0xFFCFC3B5);
+  static const Color creamMuted = Color(0xFF9A8D7F);
+  static const Color hairlineDark = Color(0x26F5EFE6);
+
+  // Latte accent for dark mode
+  static const Color latte = Color(0xFFC8A27C);
+
+  // --- Semantic battery states (deep enough to use as text on paper) ---
+  static const Color charging = Color(0xFF2E7050);
+  static const Color batteryWarning = Color(0xFF8C5E0E);
+  static const Color batteryCritical = Color(0xFFB7412F);
+
+  // Same states lifted for dark roast
+  static const Color chargingDark = Color(0xFF7FBF9A);
+  static const Color batteryWarningDark = Color(0xFFE0A94A);
+  static const Color batteryCriticalDark = Color(0xFFE8705C);
+
+  // Alarm ground for the takeover: both clear AA against cream text.
+  static const Color alarm = Color(0xFFB7412F);
+  static const Color alarmDeep = Color(0xFF8E2F22);
 }
 
-/// Paper & Ink palette from genexis.dev, along with native macOS Glass colors.
-class AppColors {
-  AppColors._();
+/// Motion tokens (Material 3 `Durations` / `Easing`) shared across the app.
+abstract class AppMotion {
+  /// One half-cycle of the alarm takeover pulse.
+  static const Duration pulseDuration = Durations.extralong1;
+  static const Curve pulseCurve = Easing.standard;
 
-  // --- genexis.dev Paper & Ink Palette ---
-  // Paper (light surfaces)
-  static const Color paper = Color(0xFFF2EDE3);
-  static const Color paperRaised = Color(0xFFFAF7F0);
-  static const Color paperDeep = Color(0xFFE7E0D0);
-  static const Color paperRecess = Color(0xFFDED6C4);
+  /// Banner and surface transitions.
+  static const Duration standardDuration = Durations.medium2;
+  static const Curve standardCurve = Easing.standard;
+}
 
-  // Ink (text on paper)
-  static const Color ink = Color(0xFF16161A);
-  static const Color crease = Color(0xFF2B2B2E);
-  static const Color inkSoft = Color(0xFF5A564E);
-  static const Color graphite = Color(0xFF66625A);
+/// Battery status colors resolved for the current brightness.
+class BatteryStatusColors {
+  final Color charging;
+  final Color warning;
+  final Color critical;
 
-  // Hairlines
-  static const Color hairline = Color(0x2E2B2B2E);
-  static const Color hairlineFaint = Color(0x172B2B2E);
+  const BatteryStatusColors._({
+    required this.charging,
+    required this.warning,
+    required this.critical,
+  });
 
-  // Lead (the red accent)
-  static const Color lead = Color(0xFFB4402C);
-  static const Color leadDeep = Color(0xFF8E3122);
-  static const Color leadWash = Color(0x1AB4402C);
-
-  // Dark Paper / Ink surfaces
-  static const Color inkBg = Color(0xFF16161A);
-  static const Color inkRaised = Color(0xFF212125);
-  static const Color inkDeep = Color(0xFF2B2B2E);
-  static const Color inkRecess = Color(0xFF35353A);
-
-  // Paper text in dark mode
-  static const Color paperText = Color(0xFFF2EDE3);
-  static const Color paperSoft = Color(0xFFB9B3A6);
-  static const Color paperMuted = Color(0xFF8A857A);
-  static const Color hairlineDark = Color(0x26F2EDE3);
-  static const Color leadLight = Color(0xFFD4674F);
-
-  // --- macOS Native Glass Palette ---
-  static const Color macAccent = Color(0xFF007AFF);
-  static const Color macAccentDark = Color(0xFF0A84FF);
-
-  static const Color macGlassLightBg = Color(0x12FFFFFF);
-  static const Color macGlassDarkBg = Color(0x16000000);
-
-  static const Color macGlassLightSurface = Color(0x66FFFFFF);
-  static const Color macGlassDarkSurface = Color(0x45222226);
-
-  static const Color macGlassLightBorder = Color(0x4DFFFFFF);
-  static const Color macGlassDarkBorder = Color(0x2AFFFFFF);
-
-  static const Color macGlassLightHighlight = Color(0x80FFFFFF);
-  static const Color macGlassDarkHighlight = Color(0x35FFFFFF);
-
-  static const Color macTextPrimaryLight = Color(0xFF1D1D1F);
-  static const Color macTextSecondaryLight = Color(0xFF6E6E73);
-  static const Color macTextPrimaryDark = Color(0xFFF5F5F7);
-  static const Color macTextSecondaryDark = Color(0xFF98989D);
-
-  static const Color macCharging = Color(0xFF34C759);
-  static const Color macWarning = Color(0xFFFF9F0A);
-  static const Color macCritical = Color(0xFFFF453A);
-
-  // Semantic (paper battery states)
-  static const Color charging = Color(0xFF4F8A63);
-  static const Color batteryWarning = Color(0xFFB8862B);
-  static const Color batteryCritical = lead;
+  static BatteryStatusColors of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark
+        ? const BatteryStatusColors._(
+            charging: AppColors.chargingDark,
+            warning: AppColors.batteryWarningDark,
+            critical: AppColors.batteryCriticalDark,
+          )
+        : const BatteryStatusColors._(
+            charging: AppColors.charging,
+            warning: AppColors.batteryWarning,
+            critical: AppColors.batteryCritical,
+          );
+  }
 }
 
 class AppTheme {
   AppTheme._();
 
-  static const double cardRadius = 13.0;
-  static const double controlRadius = 8.0;
+  static const double cardRadius = 4.0;
+  static const double controlRadius = 3.0;
 
-  /// True where the native window is frosted glass (macOS vibrancy).
   static final bool isMacOS = !kIsWeb && Platform.isMacOS;
 
-  static ThemeData get lightTheme => buildTheme(
-        visualTheme: AppVisualTheme.paperInk,
-        brightness: Brightness.light,
-      );
+  /// Text slots the alarm takeover relies on. Sizes come from Material
+  /// defaults; only the weights are tuned here so widgets never set them.
+  static const TextTheme _textTheme = TextTheme(
+    displayLarge: TextStyle(
+      fontWeight: FontWeight.w900,
+      height: 1.0,
+      fontFeatures: [FontFeature.tabularFigures()],
+    ),
+    headlineSmall: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.6),
+    titleMedium: TextStyle(fontWeight: FontWeight.w600),
+    labelLarge: TextStyle(fontWeight: FontWeight.w800),
+  );
 
-  static ThemeData get darkTheme => buildTheme(
-        visualTheme: AppVisualTheme.paperInk,
-        brightness: Brightness.dark,
-      );
+  static ThemeData get lightTheme => buildTheme(brightness: Brightness.light);
+  static ThemeData get darkTheme => buildTheme(brightness: Brightness.dark);
 
-  /// Builds ThemeData for the chosen visual theme and brightness.
-  static ThemeData buildTheme({
-    required AppVisualTheme visualTheme,
-    required Brightness brightness,
-  }) {
+  static ThemeData buildTheme({required Brightness brightness}) {
     final isDark = brightness == Brightness.dark;
 
-    if (visualTheme == AppVisualTheme.macGlass) {
-      return _buildMacGlassTheme(isDark);
-    } else {
-      return _buildPaperInkTheme(isDark);
-    }
-  }
-
-  // --- macOS Glass Theme Builder ---
-  static ThemeData _buildMacGlassTheme(bool isDark) {
-    final bg = isMacOS
-        ? Colors.transparent
-        : (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFEBEBF0));
-
-    final surface = isDark ? AppColors.macGlassDarkSurface : AppColors.macGlassLightSurface;
-    final primary = isDark ? AppColors.macAccentDark : AppColors.macAccent;
-    final onSurface = isDark ? AppColors.macTextPrimaryDark : AppColors.macTextPrimaryLight;
-    final onSurfaceVariant = isDark ? AppColors.macTextSecondaryDark : AppColors.macTextSecondaryLight;
-    final border = isDark ? AppColors.macGlassDarkBorder : AppColors.macGlassLightBorder;
-
-    final colorScheme = ColorScheme(
-      brightness: isDark ? Brightness.dark : Brightness.light,
-      primary: primary,
-      onPrimary: Colors.white,
-      secondary: AppColors.macCharging,
-      onSecondary: Colors.white,
-      surface: surface,
-      onSurface: onSurface,
-      surfaceContainerHighest: isDark ? const Color(0x35333338) : const Color(0x40E5E5EA),
-      onSurfaceVariant: onSurfaceVariant,
-      outline: border,
-      outlineVariant: border,
-      error: AppColors.macCritical,
-      onError: Colors.white,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: isDark ? Brightness.dark : Brightness.light,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: bg,
-      canvasColor: bg,
-      fontFamily: '.SF Pro Text',
-      appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
-        foregroundColor: onSurface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-      ),
-      cardTheme: CardThemeData(
-        color: surface,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
-          side: BorderSide(color: border, width: 0.8),
-        ),
-      ),
-      sliderTheme: SliderThemeData(
-        activeTrackColor: primary,
-        inactiveTrackColor: isDark ? const Color(0x35FFFFFF) : const Color(0x28000000),
-        thumbColor: Colors.white,
-        overlayColor: primary.withValues(alpha: 0.12),
-        trackHeight: 3.5,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.5, elevation: 2),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(controlRadius),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-        ),
-      ),
-      dividerTheme: DividerThemeData(
-        color: border,
-        thickness: 0.6,
-        space: 1,
-      ),
-    );
-  }
-
-  // --- genexis.dev Paper & Ink Theme Builder ---
-  static ThemeData _buildPaperInkTheme(bool isDark) {
-    final bg = isDark ? AppColors.inkBg : AppColors.paper;
-    final surface = isDark ? AppColors.inkRaised : AppColors.paperRaised;
-    final surfaceHigh = isDark ? AppColors.inkDeep : AppColors.paperDeep;
-    final recess = isDark ? AppColors.inkRecess : AppColors.paperRecess;
+    final bg = isDark ? AppColors.roast : AppColors.paper;
+    final surface = isDark ? AppColors.roastRaised : AppColors.paperRaised;
+    final surfaceHigh = isDark ? AppColors.roastDeep : AppColors.paperDeep;
+    final recess = isDark ? AppColors.roastRecess : AppColors.paperRecess;
     final border = isDark ? AppColors.hairlineDark : AppColors.hairline;
-    final accent = isDark ? AppColors.leadLight : AppColors.lead;
-    final onAccent = isDark ? AppColors.inkBg : AppColors.paperRaised;
-    final textPrimary = isDark ? AppColors.paperText : AppColors.ink;
-    final textSecondary = isDark ? AppColors.paperSoft : AppColors.inkSoft;
+    final accent = isDark ? AppColors.latte : AppColors.coffee;
+    final onAccent = isDark ? AppColors.roast : AppColors.cream;
+    final textPrimary = isDark ? AppColors.cream : AppColors.ink;
+    final textSecondary = isDark ? AppColors.creamSoft : AppColors.inkSoft;
+    final charging = isDark ? AppColors.chargingDark : AppColors.charging;
 
     final colorScheme = ColorScheme(
-      brightness: isDark ? Brightness.dark : Brightness.light,
+      brightness: brightness,
       primary: accent,
       onPrimary: onAccent,
-      secondary: AppColors.charging,
+      secondary: charging,
       onSecondary: onAccent,
       surface: surface,
       onSurface: textPrimary,
@@ -214,17 +144,20 @@ class AppTheme {
       onSurfaceVariant: textSecondary,
       outline: border,
       outlineVariant: border,
-      error: AppColors.batteryCritical,
-      onError: onAccent,
+      error: AppColors.alarm,
+      errorContainer: AppColors.alarmDeep,
+      onError: AppColors.cream,
+      onErrorContainer: AppColors.cream,
     );
 
     return ThemeData(
       useMaterial3: true,
-      brightness: isDark ? Brightness.dark : Brightness.light,
+      brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: bg,
       canvasColor: bg,
       fontFamily: 'Literata',
+      textTheme: _textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: textPrimary,
@@ -237,7 +170,14 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4.0),
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: BorderSide(color: border, width: 1.0),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
           side: BorderSide(color: border, width: 1.0),
         ),
       ),
@@ -255,7 +195,7 @@ class AppTheme {
           foregroundColor: onAccent,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(3.0),
+            borderRadius: BorderRadius.circular(controlRadius),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),

@@ -1,41 +1,41 @@
 import 'package:flutter/material.dart';
 import '../../models/battery_info.dart';
 import '../../theme/app_theme.dart';
-import 'glass_surface.dart';
+import 'paper_surface.dart';
 
 class BatteryGauge extends StatelessWidget {
   final BatteryInfo info;
-  final AppVisualTheme visualTheme;
 
-  const BatteryGauge({
-    super.key,
-    required this.info,
-    this.visualTheme = AppVisualTheme.macGlass,
-  });
+  const BatteryGauge({super.key, required this.info});
 
-  Color _getStatusColor(bool isMacGlass) {
-    if (isMacGlass) {
-      if (info.isCharging) return AppColors.macCharging;
-      if (info.percentage > 35) return AppColors.macCharging;
-      if (info.percentage > 20) return AppColors.macWarning;
-      return AppColors.macCritical;
-    } else {
-      if (info.isCharging) return AppColors.charging;
-      if (info.percentage > 35) return AppColors.charging;
-      if (info.percentage > 20) return AppColors.batteryWarning;
-      return AppColors.batteryCritical;
+  Color _statusColor(BatteryStatusColors colors) {
+    if (info.isCharging) return colors.charging;
+    if (info.percentage > 35) return colors.charging;
+    if (info.percentage > 20) return colors.warning;
+    return colors.critical;
+  }
+
+  String? get _timeRemainingText {
+    final tr = info.timeRemaining;
+    if (tr == null || tr.isEmpty || tr == '0:00') return null;
+    final lower = tr.toLowerCase();
+    if (lower.contains('remaining') ||
+        lower.contains('left') ||
+        lower.contains('until') ||
+        lower.contains('full')) {
+      return tr;
     }
+    return info.isDischarging ? '$tr remaining' : '$tr until full';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isMacGlass = visualTheme == AppVisualTheme.macGlass;
-    final statusColor = _getStatusColor(isMacGlass);
+    final statusColor = _statusColor(BatteryStatusColors.of(context));
     final fraction = (info.percentage / 100.0).clamp(0.0, 1.0);
+    final remainingText = _timeRemainingText;
 
-    return GlassSurface(
-      visualTheme: visualTheme,
+    return PaperSurface(
       child: Column(
         children: [
           Row(
@@ -48,11 +48,9 @@ class BatteryGauge extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: isMacGlass ? 0.15 : 0.12),
-                        borderRadius: BorderRadius.circular(isMacGlass ? 10 : 3),
-                        border: isMacGlass
-                            ? Border.all(color: statusColor.withValues(alpha: 0.25), width: 0.8)
-                            : Border.all(color: AppColors.hairline, width: 1.0),
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+                        border: Border.all(color: theme.colorScheme.outline, width: 1.0),
                       ),
                       child: Icon(
                         info.isCharging
@@ -70,31 +68,33 @@ class BatteryGauge extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isMacGlass ? 'Current Battery' : 'CURRENT BATTERY',
-                            style: isMacGlass
-                                ? theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    letterSpacing: -0.1,
-                                    fontWeight: FontWeight.w500,
-                                  )
-                                : const TextStyle(
-                                    fontFamily: 'Archivo Narrow',
-                                    fontSize: 10,
-                                    letterSpacing: 1.4,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.inkSoft,
-                                  ),
+                            'CURRENT BATTERY',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontFamily: 'Archivo Narrow',
+                              letterSpacing: 1.4,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            info.statusText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            info.isDischarging
+                                ? 'Discharging'
+                                : (info.isCharging ? 'Charging' : 'On AC Power'),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              letterSpacing: isMacGlass ? -0.2 : 0.0,
                             ),
                           ),
+                          if (remainingText != null) ...[
+                            const SizedBox(height: 1),
+                            Text(
+                              remainingText,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -103,17 +103,11 @@ class BatteryGauge extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: isMacGlass ? 0.16 : 0.12),
-                  borderRadius: BorderRadius.circular(isMacGlass ? 12 : 3),
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: isMacGlass ? 0.35 : 0.25),
-                    width: isMacGlass ? 0.8 : 1.0,
-                  ),
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.25), width: 1.0),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -124,11 +118,10 @@ class BatteryGauge extends StatelessWidget {
                     ],
                     Text(
                       '${info.percentage}%',
-                      style: TextStyle(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         color: statusColor,
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        letterSpacing: isMacGlass ? -0.4 : 0.2,
+                        letterSpacing: 0.2,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -139,13 +132,11 @@ class BatteryGauge extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ClipRRect(
-            borderRadius: BorderRadius.circular(isMacGlass ? 5 : 2),
+            borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: fraction,
-              minHeight: isMacGlass ? 6 : 5,
-              backgroundColor: isMacGlass
-                  ? theme.colorScheme.onSurface.withValues(alpha: 0.08)
-                  : theme.colorScheme.surfaceContainerHighest,
+              minHeight: 5,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),

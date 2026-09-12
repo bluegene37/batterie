@@ -21,6 +21,32 @@ class AlarmService {
     'bell': 'assets/sounds/bell.wav',
   };
 
+  /// Human readable names for the built-in presets, in menu order.
+  static const Map<String, String> presetLabels = {
+    'siren': 'Urgent Siren',
+    'digital': 'Digital Alarm',
+    'bell': 'Alert Bell',
+  };
+
+  /// Maps stored sound ids (including legacy aliases) to a preset id that
+  /// exists in [presetLabels], or 'custom'.
+  static String normalizeSoundType(String soundType) {
+    final lower = soundType.toLowerCase();
+    if (lower == 'custom') return 'custom';
+    if (lower == 'digital_alarm') return 'digital';
+    return presetLabels.containsKey(lower) ? lower : 'siren';
+  }
+
+  /// Display name for a rule's sound: preset label, or the custom file name.
+  static String describeSound(String soundType, String? customPath) {
+    final normalized = normalizeSoundType(soundType);
+    if (normalized == 'custom') {
+      if (customPath == null || customPath.isEmpty) return 'Custom file';
+      return customPath.split(RegExp(r'[\\/]')).last;
+    }
+    return presetLabels[normalized]!;
+  }
+
   static String resolveAssetPath(String soundType) {
     return presetSounds[soundType.toLowerCase()] ?? 'assets/sounds/siren.wav';
   }

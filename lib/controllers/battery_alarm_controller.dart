@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/alarm_state.dart';
 import '../models/battery_info.dart';
 import '../models/threshold_rule.dart';
 import '../services/alarm_service.dart';
 import '../services/battery_service.dart';
 import '../services/settings_service.dart';
-import '../theme/app_theme.dart';
 
 class BatteryAlarmController extends ChangeNotifier {
   final BatteryService? _batteryService;
@@ -14,7 +13,13 @@ class BatteryAlarmController extends ChangeNotifier {
   final SettingsService _settingsService;
 
   StreamSubscription<BatteryInfo>? _batterySubscription;
+
+  /// Called when a rule starts ringing.
   VoidCallback? onAlarmTriggered;
+
+  /// Called when a ringing alarm stops for any reason (dismiss, snooze,
+  /// charger connected).
+  VoidCallback? onAlarmEnded;
 
   BatteryInfo _batteryInfo = const BatteryInfo(
     percentage: 100,
@@ -28,7 +33,7 @@ class BatteryAlarmController extends ChangeNotifier {
   String _defaultSound = 'siren';
   String? _customSoundPath;
   int _snoozeMinutes = 5;
-  AppVisualTheme _visualTheme = AppVisualTheme.paperInk;
+  ThemeMode _themeMode = ThemeMode.light;
 
   // Anti-flapping hysteresis tracking
   String? _lastDismissedRuleId;
@@ -53,14 +58,15 @@ class BatteryAlarmController extends ChangeNotifier {
   String? get customSoundPath => _customSoundPath;
   int get snoozeMinutes => _snoozeMinutes;
   bool get isTesting => _isTesting;
-  AppVisualTheme get visualTheme => _visualTheme;
+  ThemeMode get themeMode => _themeMode;
 
   Future<void> init() async {
     _thresholdRules = await _settingsService.loadThresholds();
     _volume = await _settingsService.loadVolume();
     _defaultSound = await _settingsService.loadDefaultSound();
+    _customSoundPath = await _settingsService.loadCustomSoundPath();
     _snoozeMinutes = await _settingsService.loadSnoozeMinutes();
-    _visualTheme = await _settingsService.loadVisualTheme();
+    _themeMode = await _settingsService.loadThemeMode();
 
     if (_batteryService != null) {
       _batteryInfo = _batteryService.currentInfo;
@@ -84,8 +90,10 @@ class BatteryAlarmController extends ChangeNotifier {
     // Auto-silence when connected to AC power
     if (info.isCharging || info.source == PowerSource.ac) {
       if (_alarmState.isRinging || _alarmState.isSnoozed) {
+        final wasRinging = _alarmState.isRinging;
         _alarmService.stopAlarm();
         _alarmState = AlarmState.idle();
+        if (wasRinging) onAlarmEnded?.call();
       }
       _lastDismissedRuleId = null;
       _highestPercentageSinceDismiss = info.percentage;
@@ -157,17 +165,36 @@ class BatteryAlarmController extends ChangeNotifier {
     _alarmService.stopAlarm();
     final until = DateTime.now().add(Duration(minutes: durationMinutes));
     _alarmState = _alarmState.toSnoozed(until);
+    onAlarmEnded?.call();
     notifyListeners();
   }
 
   void dismiss() {
+    final wasRinging = _alarmState.isRinging;
     _alarmService.stopAlarm();
     if (_alarmState.triggeredRule != null) {
       _lastDismissedRuleId = _alarmState.triggeredRule!.id;
       _highestPercentageSinceDismiss = _batteryInfo.percentage;
     }
     _alarmState = AlarmState.idle();
+    if (wasRinging) onAlarmEnded?.call();
     notifyListeners();
+  }
+
+  /// Plays [soundType] (or [customPath]) briefly so the user can audition a
+  /// sound while editing a threshold.
+  Future<void> previewSound({
+    required String soundType,
+    String? customPath,
+    Duration duration = const Duration(seconds: 2),
+  }) async {
+    if (_alarmState.isRinging) return;
+    await _alarmService.testAlarm(
+      soundType: soundType,
+      customPath: customPath,
+      volume: _volume,
+      duration: duration,
+    );
   }
 
   Future<void> testAlarm({Duration duration = const Duration(seconds: 3)}) async {
@@ -186,13 +213,22 @@ class BatteryAlarmController extends ChangeNotifier {
     );
   }
 
-  Future<void> addThreshold(int percentage, String label) async {
+  Future<void> addThreshold(
+    int percentage,
+    String label, {
+    String? soundType,
+    String? customSoundPath,
+  }) async {
+    final sound = soundType ?? _defaultSound;
     final newRule = ThresholdRule(
       id: 'rule_${DateTime.now().millisecondsSinceEpoch}',
       percentage: percentage.clamp(1, 99),
       label: label.trim().isEmpty ? '$percentage% Alert' : label.trim(),
       isEnabled: true,
-      soundType: _defaultSound,
+      soundType: sound,
+      customSoundPath: sound == 'custom'
+          ? (customSoundPath ?? _customSoundPath)
+          : null,
     );
     _thresholdRules.add(newRule);
     _thresholdRules.sort((a, b) => b.percentage.compareTo(a.percentage));
@@ -234,6 +270,7 @@ class BatteryAlarmController extends ChangeNotifier {
 
   Future<void> setCustomSoundPath(String? path) async {
     _customSoundPath = path;
+    await _settingsService.saveCustomSoundPath(path);
     notifyListeners();
   }
 
@@ -243,10 +280,20 @@ class BatteryAlarmController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setVisualTheme(AppVisualTheme theme) async {
-    _visualTheme = theme;
-    await _settingsService.saveVisualTheme(theme);
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode) return;
+    _themeMode = mode;
+    await _settingsService.saveThemeMode(mode);
     notifyListeners();
+  }
+
+  Future<void> toggleThemeMode({Brightness? currentBrightness}) async {
+    final effectiveBrightness = currentBrightness ??
+        (_themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+    final nextMode = effectiveBrightness == Brightness.dark
+        ? ThemeMode.light
+        : ThemeMode.dark;
+    await setThemeMode(nextMode);
   }
 
   @visibleForTesting
