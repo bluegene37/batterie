@@ -6,6 +6,10 @@ class AlarmService {
   AudioPlayer? _player;
   bool _isRinging = false;
   Timer? _testTimer;
+  StreamSubscription<void>? _playerCompleteSubscription;
+  Source? _currentSource;
+  int _currentPlayCount = 0;
+  int? _targetRepeatCount;
 
   // ignore: prefer_initializing_formals
   AlarmService({AudioPlayer? player}) : _player = player;
@@ -59,24 +63,53 @@ class AlarmService {
     required String soundType,
     String? customPath,
     double volume = 1.0,
+    int repeatCount = 0,
+    VoidCallback? onComplete,
   }) async {
     try {
       _testTimer?.cancel();
+      await _playerCompleteSubscription?.cancel();
+      _playerCompleteSubscription = null;
       await player.stop();
 
       final safeVolume = clampVolume(volume);
       await player.setVolume(safeVolume);
-      await player.setReleaseMode(ReleaseMode.loop);
 
+      final Source source;
       if (customPath != null && customPath.isNotEmpty) {
-        await player.play(DeviceFileSource(customPath));
+        source = DeviceFileSource(customPath);
       } else {
         final assetPath = resolveAssetPath(soundType);
         // Note: audioplayers AssetSource resolves relative to assets/
         final relativePath = assetPath.startsWith('assets/')
             ? assetPath.substring('assets/'.length)
             : assetPath;
-        await player.play(AssetSource(relativePath));
+        source = AssetSource(relativePath);
+      }
+      _currentSource = source;
+
+      if (repeatCount <= 0) {
+        _targetRepeatCount = null;
+        await player.setReleaseMode(ReleaseMode.loop);
+        await player.play(source);
+      } else {
+        _targetRepeatCount = repeatCount;
+        _currentPlayCount = 1;
+        await player.setReleaseMode(ReleaseMode.stop);
+
+        _playerCompleteSubscription = player.onPlayerComplete.listen((_) async {
+          if (_targetRepeatCount != null && _currentPlayCount >= _targetRepeatCount!) {
+            await stopAlarm();
+            onComplete?.call();
+          } else {
+            _currentPlayCount++;
+            if (_currentSource != null && _isRinging) {
+              await player.play(_currentSource!);
+            }
+          }
+        });
+
+        await player.play(source);
       }
 
       _isRinging = true;
@@ -97,6 +130,7 @@ class AlarmService {
         soundType: soundType,
         customPath: customPath,
         volume: volume,
+        repeatCount: 0,
       );
 
       _testTimer?.cancel();
@@ -113,6 +147,10 @@ class AlarmService {
   Future<void> stopAlarm() async {
     try {
       _testTimer?.cancel();
+      await _playerCompleteSubscription?.cancel();
+      _playerCompleteSubscription = null;
+      _targetRepeatCount = null;
+      _currentPlayCount = 0;
       await _player?.stop();
       _isRinging = false;
     } catch (e) {
@@ -131,6 +169,7 @@ class AlarmService {
 
   void dispose() {
     _testTimer?.cancel();
+    _playerCompleteSubscription?.cancel();
     _player?.dispose();
   }
 }

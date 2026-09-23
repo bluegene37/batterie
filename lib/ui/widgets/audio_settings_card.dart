@@ -9,12 +9,16 @@ class AudioSettingsCard extends StatelessWidget {
   final String? customSoundPath;
   final double volume;
   final int snoozeMinutes;
+  final int repeatCount;
   final bool isTesting;
   final Function(String sound) onSoundChanged;
   final Function(String? path) onCustomPathChanged;
   final Function(double volume) onVolumeChanged;
   final Function(int minutes) onSnoozeChanged;
+  final Function(int count) onRepeatCountChanged;
   final VoidCallback onTestAlarm;
+
+  static const List<int> supportedRepeatCounts = [1, 2, 3, 5, 10, 0];
 
   const AudioSettingsCard({
     super.key,
@@ -22,11 +26,13 @@ class AudioSettingsCard extends StatelessWidget {
     this.customSoundPath,
     required this.volume,
     required this.snoozeMinutes,
+    required this.repeatCount,
     required this.isTesting,
     required this.onSoundChanged,
     required this.onCustomPathChanged,
     required this.onVolumeChanged,
     required this.onSnoozeChanged,
+    required this.onRepeatCountChanged,
     required this.onTestAlarm,
   });
 
@@ -221,6 +227,50 @@ class AudioSettingsCard extends StatelessWidget {
                   ],
                   onChanged: (val) {
                     if (val != null) onSnoozeChanged(val);
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Repeat Count
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.repeat_rounded,
+                    size: 15,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Repeat Alarm:',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: supportedRepeatCounts.contains(repeatCount) ? repeatCount : 3,
+                  isDense: true,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 1, child: Text('1 time')),
+                    DropdownMenuItem(value: 2, child: Text('2 times')),
+                    DropdownMenuItem(value: 3, child: Text('3 times')),
+                    DropdownMenuItem(value: 5, child: Text('5 times')),
+                    DropdownMenuItem(value: 10, child: Text('10 times')),
+                    DropdownMenuItem(value: 0, child: Text('Continuous')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) onRepeatCountChanged(val);
                   },
                 ),
               ),

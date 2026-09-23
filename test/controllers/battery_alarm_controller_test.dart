@@ -15,6 +15,8 @@ class MockAlarmService extends AlarmService {
   double? lastVolume;
   String? previewedSound;
   String? previewedCustomPath;
+  int? lastRepeatCount;
+  VoidCallback? lastOnComplete;
 
   @override
   bool get isRinging => alarmStarted && !alarmStopped;
@@ -24,12 +26,16 @@ class MockAlarmService extends AlarmService {
     required String soundType,
     String? customPath,
     double volume = 1.0,
+    int repeatCount = 0,
+    VoidCallback? onComplete,
   }) async {
     alarmStarted = true;
     alarmStopped = false;
     lastSound = soundType;
     lastCustomPath = customPath;
     lastVolume = volume;
+    lastRepeatCount = repeatCount;
+    lastOnComplete = onComplete;
   }
 
   @override
@@ -307,6 +313,51 @@ void main() {
       );
       await reloaded.init();
       expect(reloaded.themeMode, equals(ThemeMode.dark));
+    });
+
+    test('repeatCount defaults to 3 and can be updated and persisted', () async {
+      expect(controller.repeatCount, equals(3));
+
+      await controller.setRepeatCount(5);
+      expect(controller.repeatCount, equals(5));
+
+      final reloaded = BatteryAlarmController(
+        alarmService: MockAlarmService(),
+        settingsService: settingsService,
+      );
+      await reloaded.init();
+      expect(reloaded.repeatCount, equals(5));
+    });
+
+    test('startAlarm receives repeatCount and onComplete auto-dismisses alarm', () {
+      int endedCount = 0;
+      controller.onAlarmEnded = () => endedCount++;
+
+      controller.evaluateBattery(const BatteryInfo(
+        percentage: 20,
+        isCharging: false,
+        source: PowerSource.battery,
+      ));
+
+      expect(controller.alarmState.isRinging, isTrue);
+      expect(mockAlarm.lastRepeatCount, equals(3));
+      expect(mockAlarm.lastOnComplete, isNotNull);
+
+      // Trigger repeat completion callback
+      mockAlarm.lastOnComplete!();
+
+      // Should be dismissed, not ringing, and onAlarmEnded fired
+      expect(controller.alarmState.isRinging, isFalse);
+      expect(controller.alarmState.status, equals(AlarmStatus.idle));
+      expect(endedCount, equals(1));
+
+      // Subsequent battery poll at 19% should not re-trigger because rule was auto-dismissed
+      controller.evaluateBattery(const BatteryInfo(
+        percentage: 19,
+        isCharging: false,
+        source: PowerSource.battery,
+      ));
+      expect(controller.alarmState.isRinging, isFalse);
     });
   });
 }

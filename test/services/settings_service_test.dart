@@ -26,6 +26,9 @@ void main() {
       final snoozeMinutes = await service.loadSnoozeMinutes();
       expect(snoozeMinutes, equals(5));
 
+      final repeatCount = await service.loadRepeatCount();
+      expect(repeatCount, equals(3));
+
       final themeMode = await service.loadThemeMode();
       expect(themeMode, equals(ThemeMode.light));
     });
@@ -63,6 +66,12 @@ void main() {
 
       await service.saveSnoozeMinutes(10);
       expect(await service.loadSnoozeMinutes(), equals(10));
+
+      await service.saveRepeatCount(5);
+      expect(await service.loadRepeatCount(), equals(5));
+
+      await service.saveRepeatCount(0);
+      expect(await service.loadRepeatCount(), equals(0));
     });
 
     test('Saves and restores the custom default sound path', () async {

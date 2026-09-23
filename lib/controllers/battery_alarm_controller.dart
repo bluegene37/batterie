@@ -33,6 +33,7 @@ class BatteryAlarmController extends ChangeNotifier {
   String _defaultSound = 'siren';
   String? _customSoundPath;
   int _snoozeMinutes = 5;
+  int _repeatCount = 3;
   ThemeMode _themeMode = ThemeMode.light;
 
   // Anti-flapping hysteresis tracking
@@ -57,6 +58,7 @@ class BatteryAlarmController extends ChangeNotifier {
   String get defaultSound => _defaultSound;
   String? get customSoundPath => _customSoundPath;
   int get snoozeMinutes => _snoozeMinutes;
+  int get repeatCount => _repeatCount;
   bool get isTesting => _isTesting;
   ThemeMode get themeMode => _themeMode;
 
@@ -66,6 +68,7 @@ class BatteryAlarmController extends ChangeNotifier {
     _defaultSound = await _settingsService.loadDefaultSound();
     _customSoundPath = await _settingsService.loadCustomSoundPath();
     _snoozeMinutes = await _settingsService.loadSnoozeMinutes();
+    _repeatCount = await _settingsService.loadRepeatCount();
     _themeMode = await _settingsService.loadThemeMode();
 
     if (_batteryService != null) {
@@ -152,6 +155,12 @@ class BatteryAlarmController extends ChangeNotifier {
       soundType: sound,
       customPath: customPath,
       volume: _volume,
+      repeatCount: _repeatCount,
+      onComplete: () {
+        if (_alarmState.isRinging) {
+          dismiss();
+        }
+      },
     );
 
     onAlarmTriggered?.call();
@@ -277,6 +286,12 @@ class BatteryAlarmController extends ChangeNotifier {
   Future<void> setSnoozeMinutes(int minutes) async {
     _snoozeMinutes = minutes;
     await _settingsService.saveSnoozeMinutes(minutes);
+    notifyListeners();
+  }
+
+  Future<void> setRepeatCount(int count) async {
+    _repeatCount = count;
+    await _settingsService.saveRepeatCount(count);
     notifyListeners();
   }
 

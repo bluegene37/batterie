@@ -8,6 +8,7 @@ class SettingsService {
   static const String _keyVolume = 'alarm_volume';
   static const String _keyDefaultSound = 'alarm_default_sound';
   static const String _keySnoozeMinutes = 'alarm_snooze_minutes';
+  static const String _keyRepeatCount = 'alarm_repeat_count';
   static const String _keyCustomSoundPath = 'alarm_custom_sound_path';
   static const String _keyThemeMode = 'app_theme_mode';
 
@@ -94,6 +95,16 @@ class SettingsService {
   Future<void> saveSnoozeMinutes(int minutes) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keySnoozeMinutes, minutes);
+  }
+
+  Future<int> loadRepeatCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyRepeatCount) ?? 3;
+  }
+
+  Future<void> saveRepeatCount(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyRepeatCount, count);
   }
 
   Future<ThemeMode> loadThemeMode() async {

@@ -14,6 +14,8 @@ class MockAlarmService extends AlarmService {
     required String soundType,
     String? customPath,
     double volume = 1.0,
+    int repeatCount = 0,
+    VoidCallback? onComplete,
   }) async {}
 
   @override
@@ -239,5 +241,38 @@ void main() {
     expect(fakeTray.reportedHeight, isNotNull);
     // Content height including all widgets is well above 400px
     expect(fakeTray.reportedHeight!, greaterThan(400.0));
+  });
+
+  testWidgets('Repeat count dropdown updates controller repeatCount', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final controller = BatteryAlarmController(
+      alarmService: MockAlarmService(),
+      settingsService: SettingsService(),
+    );
+    await controller.init();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DashboardScreen(
+          controller: controller,
+          onMinimizeToTray: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.repeatCount, equals(3));
+    expect(find.text('Repeat Alarm:'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('3 times'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('3 times'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('5 times').last);
+    await tester.pumpAndSettle();
+
+    expect(controller.repeatCount, equals(5));
   });
 }
