@@ -11,7 +11,9 @@ PRODUCT_NAME = batterie
 // Gene - Oct, 07, 2026: Updated bundle identifier to dev.genexis.batterie and configured DEVELOPMENT_TEAM for Apple Developer account.
 // PRODUCT_BUNDLE_IDENTIFIER = com.example.batterie
 PRODUCT_BUNDLE_IDENTIFIER = dev.genexis.batterie
-DEVELOPMENT_TEAM = J9V2X635Y6
+// Gene - Oct, 07, 2026: Updated DEVELOPMENT_TEAM to official Apple Team ID T7LB768N2Z from Developer ID certificate
+// DEVELOPMENT_TEAM = J9V2X635Y6
+DEVELOPMENT_TEAM = T7LB768N2Z
 
 // The copyright displayed in application information
 // Gene - Oct, 07, 2026: Updated copyright notice organization to dev.genexis.
