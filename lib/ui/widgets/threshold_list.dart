@@ -1,7 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../models/threshold_rule.dart';
+// Gene - Oct, 07, 2026: Added settings_service.dart import for copying custom audio into sandbox container
+// import '../../services/alarm_service.dart';
 import '../../services/alarm_service.dart';
+import '../../services/settings_service.dart';
 import '../../theme/app_theme.dart';
 import 'paper_surface.dart';
 
@@ -277,6 +280,8 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
   late String _sound;
   String? _customPath;
   late final TextEditingController _labelController;
+  // Gene - Oct, 07, 2026: Added _pickerResetCount to ensure DropdownButtonFormField stays in sync when picker is cancelled or updated
+  int _pickerResetCount = 0;
 
   @override
   void initState() {
@@ -297,28 +302,68 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
     setState(() => _percentage = (_percentage + delta).clamp(1, 99));
   }
 
+  // Gene - Oct, 07, 2026: Copy custom audio to sandbox container and support native macOS audio formats
+  // Future<void> _pickCustomAudio() async {
+  //   final previousSound = _sound;
+  //   try {
+  //     final file = await FilePicker.pickFile(
+  //       type: FileType.custom,
+  //       allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+  //     );
+  //     if (!mounted) return;
+  //     if (file != null && file.path != null) {
+  //       setState(() {
+  //         _sound = 'custom';
+  //         _customPath = file.path;
+  //       });
+  //     } else if (_customPath == null) {
+  //       // Picker cancelled with nothing to fall back on: keep the old preset.
+  //       setState(() => _sound = previousSound);
+  //     } else {
+  //       setState(() => _sound = 'custom');
+  //     }
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() => _sound = previousSound);
+  //     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+  //       SnackBar(content: Text('Could not open file picker: $e')),
+  //     );
+  //   }
+  // }
   Future<void> _pickCustomAudio() async {
     final previousSound = _sound;
     try {
       final file = await FilePicker.pickFile(
         type: FileType.custom,
-        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'aif', 'aiff'],
       );
       if (!mounted) return;
       if (file != null && file.path != null) {
+        final safePath = await SettingsService.copyCustomSoundFile(file.path!);
+        if (!mounted) return;
         setState(() {
           _sound = 'custom';
-          _customPath = file.path;
+          _customPath = safePath;
+          _pickerResetCount++;
         });
       } else if (_customPath == null) {
         // Picker cancelled with nothing to fall back on: keep the old preset.
-        setState(() => _sound = previousSound);
+        setState(() {
+          _sound = previousSound;
+          _pickerResetCount++;
+        });
       } else {
-        setState(() => _sound = 'custom');
+        setState(() {
+          _sound = 'custom';
+          _pickerResetCount++;
+        });
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _sound = previousSound);
+      setState(() {
+        _sound = previousSound;
+        _pickerResetCount++;
+      });
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         SnackBar(content: Text('Could not open file picker: $e')),
       );
@@ -399,7 +444,32 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
               ],
             ),
             const SizedBox(height: 10),
+            // Gene - Oct, 07, 2026: Add key to DropdownButtonFormField to ensure state synchronization when canceling or switching sounds, and gracefully handle empty custom sound path
+            // DropdownButtonFormField<String>(
+            //   initialValue: _sound,
+            //   isDense: true,
+            //   style: theme.textTheme.bodyMedium,
+            //   decoration: const InputDecoration(
+            //     labelText: 'Alarm Sound',
+            //     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            //   ),
+            //   items: [
+            //     for (final entry in AlarmService.presetLabels.entries)
+            //       DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+            //     const DropdownMenuItem(value: 'custom', child: Text('Custom Audio File…')),
+            //   ],
+            //   onChanged: (val) {
+            //     if (val == null) return;
+            //     if (val == 'custom') {
+            //       _pickCustomAudio();
+            //     } else {
+            //       setState(() => _sound = val);
+            //     }
+            //   },
+            // ),
+            // if (_sound == 'custom' && _customPath != null) ...[
             DropdownButtonFormField<String>(
+              key: ValueKey('dialog_sound_${_sound}_${_customPath ?? ""}_$_pickerResetCount'),
               initialValue: _sound,
               isDense: true,
               style: theme.textTheme.bodyMedium,
@@ -421,7 +491,7 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
                 }
               },
             ),
-            if (_sound == 'custom' && _customPath != null) ...[
+            if (_sound == 'custom') ...[
               const SizedBox(height: 6),
               Row(
                 children: [
@@ -429,7 +499,9 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      AlarmService.describeSound('custom', _customPath),
+                      _customPath != null
+                          ? AlarmService.describeSound('custom', _customPath)
+                          : 'No file selected (will use siren)',
                       style: theme.textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                     ),

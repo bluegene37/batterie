@@ -264,6 +264,17 @@ void main() {
       expect(reloaded.customSoundPath, equals('/tmp/default.mp3'));
     });
 
+    // Gene - Oct, 07, 2026: Added test verifying testAlarm passes null customPath when defaultSound is a preset
+    test('testAlarm does not pass customPath if defaultSound is a preset', () async {
+      await controller.setCustomSoundPath('/tmp/custom.mp3');
+      await controller.setDefaultSound('bell');
+
+      await controller.testAlarm();
+
+      expect(mockAlarm.previewedSound, equals('bell'));
+      expect(mockAlarm.previewedCustomPath, isNull);
+    });
+
     test('onAlarmEnded fires on dismiss, snooze, and charger connect', () {
       int endedCount = 0;
       controller.onAlarmEnded = () => endedCount++;

@@ -49,4 +49,43 @@ void main() {
 
     expect(updatedRepeatCount, equals(1));
   });
+
+  // Gene - Oct, 07, 2026: Added test verifying AudioSettingsCard dropdown updates when switching from custom to preset
+  testWidgets('AudioSettingsCard updates dropdown when selectedSound changes from custom to preset', (tester) async {
+    String currentSound = 'custom';
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) => MaterialApp(
+          home: Scaffold(
+            body: AudioSettingsCard(
+              selectedSound: currentSound,
+              customSoundPath: '/tmp/test.mp3',
+              volume: 0.8,
+              snoozeMinutes: 5,
+              repeatCount: 3,
+              isTesting: false,
+              onSoundChanged: (sound) => setState(() => currentSound = sound),
+              onCustomPathChanged: (_) {},
+              onVolumeChanged: (_) {},
+              onSnoozeChanged: (_) {},
+              onRepeatCountChanged: (_) {},
+              onTestAlarm: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.text('Custom Audio File…'), findsOneWidget);
+
+    // Tap dropdown and select 'Digital Alarm'
+    await tester.tap(find.text('Custom Audio File…'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Digital Alarm').last);
+    await tester.pumpAndSettle();
+
+    expect(currentSound, equals('digital'));
+    expect(find.text('Digital Alarm'), findsOneWidget);
+  });
 }

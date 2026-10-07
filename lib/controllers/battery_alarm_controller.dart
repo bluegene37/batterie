@@ -67,6 +67,14 @@ class BatteryAlarmController extends ChangeNotifier {
     _volume = await _settingsService.loadVolume();
     _defaultSound = await _settingsService.loadDefaultSound();
     _customSoundPath = await _settingsService.loadCustomSoundPath();
+    // Gene - Oct, 07, 2026: If an existing custom sound path was set, ensure it is safely inside container
+    if (_customSoundPath != null && _customSoundPath!.isNotEmpty) {
+      final safePath = await SettingsService.copyCustomSoundFile(_customSoundPath!);
+      if (safePath != _customSoundPath) {
+        _customSoundPath = safePath;
+        await _settingsService.saveCustomSoundPath(safePath);
+      }
+    }
     _snoozeMinutes = await _settingsService.loadSnoozeMinutes();
     _repeatCount = await _settingsService.loadRepeatCount();
     _themeMode = await _settingsService.loadThemeMode();
@@ -149,7 +157,11 @@ class BatteryAlarmController extends ChangeNotifier {
     // Trigger Alarm!
     _alarmState = AlarmState.ringing(targetRule);
     final sound = targetRule.soundType.isNotEmpty ? targetRule.soundType : _defaultSound;
-    final customPath = targetRule.customSoundPath ?? _customSoundPath;
+    // Gene - Oct, 07, 2026: Only pass customPath when sound is 'custom' to prevent overriding preset sounds
+    // final customPath = targetRule.customSoundPath ?? _customSoundPath;
+    final customPath = sound == 'custom'
+        ? (targetRule.customSoundPath ?? _customSoundPath)
+        : null;
 
     _alarmService.startAlarm(
       soundType: sound,
@@ -198,9 +210,16 @@ class BatteryAlarmController extends ChangeNotifier {
     Duration duration = const Duration(seconds: 2),
   }) async {
     if (_alarmState.isRinging) return;
+    // Gene - Oct, 07, 2026: Only pass customPath when soundType is 'custom'
+    // await _alarmService.testAlarm(
+    //   soundType: soundType,
+    //   customPath: customPath,
+    //   volume: _volume,
+    //   duration: duration,
+    // );
     await _alarmService.testAlarm(
       soundType: soundType,
-      customPath: customPath,
+      customPath: soundType == 'custom' ? customPath : null,
       volume: _volume,
       duration: duration,
     );
@@ -210,9 +229,20 @@ class BatteryAlarmController extends ChangeNotifier {
     _isTesting = true;
     notifyListeners();
 
+    // Gene - Oct, 07, 2026: Only pass customPath when defaultSound is 'custom' to ensure preset testing works
+    // await _alarmService.testAlarm(
+    //   soundType: _defaultSound,
+    //   customPath: _customSoundPath,
+    //   volume: _volume,
+    //   duration: duration,
+    //   onComplete: () {
+    //     _isTesting = false;
+    //     notifyListeners();
+    //   },
+    // );
     await _alarmService.testAlarm(
       soundType: _defaultSound,
-      customPath: _customSoundPath,
+      customPath: _defaultSound == 'custom' ? _customSoundPath : null,
       volume: _volume,
       duration: duration,
       onComplete: () {
@@ -278,8 +308,16 @@ class BatteryAlarmController extends ChangeNotifier {
   }
 
   Future<void> setCustomSoundPath(String? path) async {
-    _customSoundPath = path;
-    await _settingsService.saveCustomSoundPath(path);
+    // Gene - Oct, 07, 2026: Copy custom audio file into sandbox container before saving
+    // _customSoundPath = path;
+    // await _settingsService.saveCustomSoundPath(path);
+    // notifyListeners();
+    String? safePath = path;
+    if (path != null && path.isNotEmpty) {
+      safePath = await SettingsService.copyCustomSoundFile(path);
+    }
+    _customSoundPath = safePath;
+    await _settingsService.saveCustomSoundPath(safePath);
     notifyListeners();
   }
 

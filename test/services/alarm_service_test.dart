@@ -7,7 +7,26 @@ class FakeAudioPlayer extends Fake implements AudioPlayer {
   final _completeController = StreamController<void>.broadcast();
   int playCallCount = 0;
   ReleaseMode? currentReleaseMode;
+  // Gene - Oct, 07, 2026: Added lastPlayedSource tracking to verify played sound source
+  // bool isStopped = false;
+  //
+  // @override
+  // Stream<void> get onPlayerComplete => _completeController.stream;
+  //
+  // @override
+  // Future<void> play(
+  //   Source source, {
+  //   double? volume,
+  //   double? balance,
+  //   AudioContext? ctx,
+  //   Duration? position,
+  //   PlayerMode? mode,
+  // }) async {
+  //   playCallCount++;
+  //   isStopped = false;
+  // }
   bool isStopped = false;
+  Source? lastPlayedSource;
 
   @override
   Stream<void> get onPlayerComplete => _completeController.stream;
@@ -22,6 +41,7 @@ class FakeAudioPlayer extends Fake implements AudioPlayer {
     PlayerMode? mode,
   }) async {
     playCallCount++;
+    lastPlayedSource = source;
     isStopped = false;
   }
 
@@ -111,6 +131,35 @@ void main() {
       expect(completed, isTrue);
       expect(service.isRinging, isFalse);
       expect(fakePlayer.isStopped, isTrue);
+    });
+
+    // Gene - Oct, 07, 2026: Added tests verifying preset sounds take precedence over customPath unless soundType is 'custom'
+    test('Plays preset sound when soundType is a preset even if customPath is present', () async {
+      final fakePlayer = FakeAudioPlayer();
+      final service = AlarmService(player: fakePlayer);
+
+      await service.startAlarm(
+        soundType: 'bell',
+        customPath: '/non/existent/custom_file.mp3',
+        repeatCount: 0,
+      );
+
+      expect(fakePlayer.lastPlayedSource, isA<AssetSource>());
+      expect((fakePlayer.lastPlayedSource as AssetSource).path, equals('sounds/bell.wav'));
+    });
+
+    test('Falls back to preset siren asset when custom soundType is specified but file does not exist', () async {
+      final fakePlayer = FakeAudioPlayer();
+      final service = AlarmService(player: fakePlayer);
+
+      await service.startAlarm(
+        soundType: 'custom',
+        customPath: '/definitely/non_existent/path/alarm.wav',
+        repeatCount: 0,
+      );
+
+      expect(fakePlayer.lastPlayedSource, isA<AssetSource>());
+      expect((fakePlayer.lastPlayedSource as AssetSource).path, equals('sounds/siren.wav'));
     });
   });
 }

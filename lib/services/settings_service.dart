@@ -1,5 +1,12 @@
 import 'dart:convert';
+// Gene - Oct, 07, 2026: Added dart:io, flutter/foundation, and path_provider for persisting custom sound files inside sandbox
+// import 'package:flutter/material.dart' show ThemeMode;
+// import 'package:shared_preferences/shared_preferences.dart';
+// import '../models/threshold_rule.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show ThemeMode;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/threshold_rule.dart';
 
@@ -84,6 +91,30 @@ class SettingsService {
       await prefs.remove(_keyCustomSoundPath);
     } else {
       await prefs.setString(_keyCustomSoundPath, path);
+    }
+  }
+
+  // Gene - Oct, 07, 2026: Copies user-selected audio file into application support directory inside the App Sandbox container so it can be reliably played by AVPlayer across sessions
+  static Future<String> copyCustomSoundFile(String sourcePath) async {
+    try {
+      final sourceFile = File(sourcePath);
+      if (!sourceFile.existsSync()) return sourcePath;
+      final dir = await getApplicationSupportDirectory();
+      final soundDir = Directory('${dir.path}/custom_sounds');
+      if (!soundDir.existsSync()) {
+        await soundDir.create(recursive: true);
+      }
+      final fileName = sourcePath.split(RegExp(r'[\\/]')).last;
+      final destFile = File('${soundDir.path}/$fileName');
+      if (sourceFile.path == destFile.path) {
+        return destFile.path;
+      }
+      final bytes = await sourceFile.readAsBytes();
+      await destFile.writeAsBytes(bytes);
+      return destFile.path;
+    } catch (e) {
+      debugPrint('Could not copy custom sound file to app storage: $e');
+      return sourcePath;
     }
   }
 
