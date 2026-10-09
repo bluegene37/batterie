@@ -1,5 +1,7 @@
 name: batterie
-description: "A new Flutter project."
+# Gene - Oct, 09, 2026: Replaced template description with the real app description.
+# description: "A new Flutter project."
+description: "A lightweight battery alarm desktop app for macOS and Windows."
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 

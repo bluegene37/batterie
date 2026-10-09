@@ -89,11 +89,15 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "batterie" "\0"
+            // Gene - Oct, 09, 2026: Replaced template CompanyName/FileDescription/LegalCopyright with dev.genexis publisher (matches macOS AppInfo.xcconfig) and a real app description for Windows trust metadata.
+            // VALUE "CompanyName", "com.example" "\0"
+            // VALUE "FileDescription", "batterie" "\0"
+            VALUE "CompanyName", "dev.genexis" "\0"
+            VALUE "FileDescription", "Batterie - Battery Alarm Monitor" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "batterie" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            // VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 dev.genexis. All rights reserved." "\0"
             VALUE "OriginalFilename", "batterie.exe" "\0"
             VALUE "ProductName", "batterie" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
