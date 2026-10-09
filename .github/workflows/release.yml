@@ -225,6 +225,18 @@ jobs:
           path: release_artifacts/*
           if-no-files-found: error
 
+      # Gene - Oct, 09, 2026: Build Microsoft Store MSIX package (unsigned; Microsoft signs it on Store ingestion).
+      # Uploaded as a separate workflow artifact for manual submission in Partner Center, not attached to the GitHub Release.
+      - name: Build Microsoft Store MSIX package
+        run: dart run msix:create --store --build-windows false
+
+      - name: Upload Microsoft Store MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-store-msix
+          path: build/windows/x64/runner/Release/*.msix
+          if-no-files-found: error
+
   publish-release:
     name: Publish GitHub Release
     needs: [build-macos, build-windows]
