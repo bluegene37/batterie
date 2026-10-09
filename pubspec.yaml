@@ -76,9 +76,13 @@ flutter:
 # Partner Center > Apps and games > Batterie > Product identity (after reserving the app name).
 msix_config:
   display_name: Batterie
-  publisher_display_name: REPLACE-WITH-PARTNER-CENTER-PUBLISHER-DISPLAY-NAME
-  identity_name: 00000Publisher.Batterie
-  publisher: CN=00000000-0000-0000-0000-000000000000
+  # Gene - Oct, 09, 2026: Set Microsoft Store Partner Center identity credentials.
+  # publisher_display_name: REPLACE-WITH-PARTNER-CENTER-PUBLISHER-DISPLAY-NAME
+  # identity_name: 00000Publisher.Batterie
+  # publisher: CN=00000000-0000-0000-0000-000000000000
+  publisher_display_name: genexis.dev
+  identity_name: genexis.dev.Batterie
+  publisher: CN=1DFE82D6-D264-4FA7-BD15-F2DFAE3C949D
   # msix_version is derived from pubspec `version` (e.g. 1.0.1+2 -> 1.0.1.0; Store requires last segment 0).
   description: A lightweight battery alarm desktop app for macOS and Windows.
   logo_path: assets/icons/app_logo.png
