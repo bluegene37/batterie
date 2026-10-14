@@ -5,9 +5,9 @@ description: "A lightweight battery alarm desktop app for macOS and Windows."
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-# Gene - Oct, 07, 2026: Bump version to 1.0.1+2 for release
-# version: 1.0.0+1
-version: 1.0.1+2
+# Gene - Oct 14, 2026: Bump version to 1.0.2+3 (MSIX 1.0.2.0) for Microsoft Store release
+# version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.13.2
