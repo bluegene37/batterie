@@ -1,3 +1,5 @@
+// Gene - Oct 14, 2026: Added dart:io import for Windows tray icon file assertions.
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:batterie/models/battery_info.dart';
@@ -158,6 +160,39 @@ void main() {
 
       final resizable = findCall(windowCalls, 'setResizable');
       expect(resizable?.arguments['isResizable'], isFalse);
+    });
+
+    // Gene - Oct 14, 2026: Added tests for Windows .ico assets, minimizeToTray, onWindowClose, and bringToFront unhide sequence.
+    test('Windows tray icon .ico assets exist and are non-empty', () {
+      final normalIco = File('assets/icons/tray_icon.ico');
+      final ringingIco = File('assets/icons/tray_icon_ringing.ico');
+      expect(normalIco.existsSync(), isTrue, reason: 'assets/icons/tray_icon.ico must exist for Windows tray');
+      expect(ringingIco.existsSync(), isTrue, reason: 'assets/icons/tray_icon_ringing.ico must exist for Windows tray');
+      expect(normalIco.lengthSync(), greaterThan(0));
+      expect(ringingIco.lengthSync(), greaterThan(0));
+    });
+
+    test('minimizeToTray invokes hide on window manager', () async {
+      final service = TrayWindowService();
+      windowCalls.clear();
+      await service.minimizeToTray();
+      expect(findCall(windowCalls, 'hide'), isNotNull);
+    });
+
+    test('onWindowClose intercepts close and calls minimizeToTray', () async {
+      final service = TrayWindowService();
+      windowCalls.clear();
+      service.onWindowClose();
+      await Future.delayed(Duration.zero);
+      expect(findCall(windowCalls, 'hide'), isNotNull);
+    });
+
+    test('bringToFront unhides window before restoring and focusing', () async {
+      final service = TrayWindowService();
+      windowCalls.clear();
+      await service.bringToFront();
+      expect(findCall(windowCalls, 'show'), isNotNull);
+      expect(findCall(windowCalls, 'focus'), isNotNull);
     });
   });
 }

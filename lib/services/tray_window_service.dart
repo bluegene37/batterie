@@ -64,9 +64,17 @@ class TrayWindowService with TrayListener, WindowListener {
 
   Future<void> _setupTrayIcon(bool isRinging) async {
     try {
-      final iconPath = isRinging
-          ? 'assets/icons/tray_icon_ringing.png'
-          : 'assets/icons/tray_icon.png';
+      // Gene - Oct 14, 2026: Windows Win32 LoadImage requires .ico format for system tray icons; keep .png for macOS and Linux.
+      // final iconPath = isRinging
+      //     ? 'assets/icons/tray_icon_ringing.png'
+      //     : 'assets/icons/tray_icon.png';
+      final iconPath = Platform.isWindows
+          ? (isRinging
+              ? 'assets/icons/tray_icon_ringing.ico'
+              : 'assets/icons/tray_icon.ico')
+          : (isRinging
+              ? 'assets/icons/tray_icon_ringing.png'
+              : 'assets/icons/tray_icon.png');
       await trayManager.setIcon(iconPath);
       await trayManager.setToolTip('Battery Alarm Monitor');
     } catch (e) {
@@ -87,9 +95,14 @@ class TrayWindowService with TrayListener, WindowListener {
           key: 'show_app',
           label: 'Show Dashboard',
         ),
+        // Gene - Oct 14, 2026: Adapt hide menu item label to platform ('Hide to System Tray' on Windows/Linux vs 'Hide to Menu Bar' on macOS).
+        // MenuItem(
+        //   key: 'hide_app',
+        //   label: 'Hide to Menu Bar',
+        // ),
         MenuItem(
           key: 'hide_app',
-          label: 'Hide to Menu Bar',
+          label: Platform.isMacOS ? 'Hide to Menu Bar' : 'Hide to System Tray',
         ),
         MenuItem(
           key: 'test_alarm',
@@ -167,13 +180,23 @@ class TrayWindowService with TrayListener, WindowListener {
 
   Future<void> bringToFront() async {
     try {
-      final isMinimized = await windowManager.isMinimized();
-      if (isMinimized) {
-        await windowManager.restore();
-      }
+      // Gene - Oct 14, 2026: Show window before restoring to guarantee hidden/minimized windows unhide and restore cleanly on Windows.
+      // final isMinimized = await windowManager.isMinimized();
+      // if (isMinimized) {
+      //   await windowManager.restore();
+      // }
+      // final isVisible = await windowManager.isVisible();
+      // if (!isVisible) {
+      //   await windowManager.show();
+      // }
+      // await windowManager.focus();
       final isVisible = await windowManager.isVisible();
       if (!isVisible) {
         await windowManager.show();
+      }
+      final isMinimized = await windowManager.isMinimized();
+      if (isMinimized) {
+        await windowManager.restore();
       }
       await windowManager.focus();
     } catch (e) {
@@ -262,6 +285,14 @@ class TrayWindowService with TrayListener, WindowListener {
   }
 
   // WindowListener callbacks
+  // Gene - Oct 14, 2026: Minimize to tray on Windows so the window hides and stays as an icon on the right of the taskbar.
+  @override
+  void onWindowMinimize() async {
+    if (Platform.isWindows) {
+      await minimizeToTray();
+    }
+  }
+
   @override
   void onWindowClose() async {
     // Intercept window close: hide to tray instead of exiting
