@@ -67,13 +67,42 @@ class BatteryAlarmController extends ChangeNotifier {
     _volume = await _settingsService.loadVolume();
     _defaultSound = await _settingsService.loadDefaultSound();
     _customSoundPath = await _settingsService.loadCustomSoundPath();
-    // Gene - Oct, 07, 2026: If an existing custom sound path was set, ensure it is safely inside container
+    // Gene - Oct 16, 2026: Also ensure threshold rules with custom sounds migrate external paths to container paths if copied. Preserved previous customSoundPath logic below.
+    // // Gene - Oct, 07, 2026: If an existing custom sound path was set, ensure it is safely inside container
+    // if (_customSoundPath != null && _customSoundPath!.isNotEmpty) {
+    //   final safePath = await SettingsService.copyCustomSoundFile(_customSoundPath!);
+    //   if (safePath != _customSoundPath) {
+    //     _customSoundPath = safePath;
+    //     await _settingsService.saveCustomSoundPath(safePath);
+    //   }
+    // }
     if (_customSoundPath != null && _customSoundPath!.isNotEmpty) {
       final safePath = await SettingsService.copyCustomSoundFile(_customSoundPath!);
       if (safePath != _customSoundPath) {
         _customSoundPath = safePath;
         await _settingsService.saveCustomSoundPath(safePath);
       }
+    }
+    bool thresholdsUpdated = false;
+    for (int i = 0; i < _thresholdRules.length; i++) {
+      final rule = _thresholdRules[i];
+      if (rule.customSoundPath != null && rule.customSoundPath!.isNotEmpty) {
+        final safePath = await SettingsService.copyCustomSoundFile(rule.customSoundPath!);
+        if (safePath != rule.customSoundPath) {
+          _thresholdRules[i] = ThresholdRule(
+            id: rule.id,
+            percentage: rule.percentage,
+            label: rule.label,
+            isEnabled: rule.isEnabled,
+            soundType: rule.soundType,
+            customSoundPath: safePath,
+          );
+          thresholdsUpdated = true;
+        }
+      }
+    }
+    if (thresholdsUpdated) {
+      await _settingsService.saveThresholds(_thresholdRules);
     }
     _snoozeMinutes = await _settingsService.loadSnoozeMinutes();
     _repeatCount = await _settingsService.loadRepeatCount();

@@ -6,5 +6,12 @@
 	<true/>
 	<key>com.apple.security.files.user-selected.read-only</key>
 	<true/>
+	<!-- Gene - Oct 16, 2026: Added music, downloads, and user-selected read-write entitlements to allow playing custom audio from Music and Downloads within macOS App Sandbox -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<key>com.apple.security.assets.music.read-only</key>
+	<true/>
+	<key>com.apple.security.files.downloads.read-only</key>
+	<true/>
 </dict>
 </plist>

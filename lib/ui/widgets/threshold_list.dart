@@ -498,6 +498,46 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
   //     );
   //   }
   // }
+  // Gene - Oct 16, 2026: Try reading bytes directly from PlatformFile to preserve security-scoped sandbox access, falling back to copyCustomSoundFile. Preserved previous _pickCustomAudio below.
+  // Future<void> _pickCustomAudio() async {
+  //   final previousSound = _sound;
+  //   try {
+  //     final file = await FilePicker.pickFile(
+  //       type: FileType.custom,
+  //       allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'aif', 'aiff'],
+  //     );
+  //     if (!mounted) return;
+  //     if (file != null && file.path != null) {
+  //       final safePath = await SettingsService.copyCustomSoundFile(file.path!);
+  //       if (!mounted) return;
+  //       setState(() {
+  //         _sound = 'custom';
+  //         _customPath = safePath;
+  //         _pickerResetCount++;
+  //       });
+  //     } else if (_customPath == null) {
+  //       // Picker cancelled with nothing to fall back on: keep the old preset.
+  //       setState(() {
+  //         _sound = previousSound;
+  //         _pickerResetCount++;
+  //       });
+  //     } else {
+  //       setState(() {
+  //         _sound = 'custom';
+  //         _pickerResetCount++;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //     setState(() {
+  //       _sound = previousSound;
+  //       _pickerResetCount++;
+  //     });
+  //     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+  //       SnackBar(content: Text('Could not open file picker: $e')),
+  //     );
+  //   }
+  // }
   Future<void> _pickCustomAudio() async {
     final previousSound = _sound;
     try {
@@ -506,8 +546,18 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
         allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'aif', 'aiff'],
       );
       if (!mounted) return;
-      if (file != null && file.path != null) {
-        final safePath = await SettingsService.copyCustomSoundFile(file.path!);
+      if (file != null) {
+        String safePath;
+        try {
+          final bytes = await file.readAsBytes();
+          safePath = await SettingsService.copyCustomSoundBytes(file.name, bytes);
+        } catch (_) {
+          if (file.path != null) {
+            safePath = await SettingsService.copyCustomSoundFile(file.path!);
+          } else {
+            safePath = file.name;
+          }
+        }
         if (!mounted) return;
         setState(() {
           _sound = 'custom';

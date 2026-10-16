@@ -96,14 +96,51 @@ class AudioSettingsCard extends StatefulWidget {
 class _AudioSettingsCardState extends State<AudioSettingsCard> {
   int _pickerResetCount = 0;
 
+  // Gene - Oct 16, 2026: Try reading bytes directly from PlatformFile to preserve security-scoped sandbox access, falling back to copyCustomSoundFile. Preserved previous _pickCustomAudio below.
+  // Future<void> _pickCustomAudio(BuildContext context) async {
+  //   try {
+  //     final file = await FilePicker.pickFile(
+  //       type: FileType.custom,
+  //       allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'aif', 'aiff'],
+  //     );
+  //     if (file != null && file.path != null) {
+  //       final safePath = await SettingsService.copyCustomSoundFile(file.path!);
+  //       widget.onCustomPathChanged(safePath);
+  //       widget.onSoundChanged('custom');
+  //     } else {
+  //       setState(() {
+  //         _pickerResetCount++;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (context.mounted) {
+  //       setState(() {
+  //         _pickerResetCount++;
+  //       });
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Could not open file picker: $e')),
+  //       );
+  //     }
+  //   }
+  // }
   Future<void> _pickCustomAudio(BuildContext context) async {
     try {
       final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'aif', 'aiff'],
       );
-      if (file != null && file.path != null) {
-        final safePath = await SettingsService.copyCustomSoundFile(file.path!);
+      if (file != null) {
+        String safePath;
+        try {
+          final bytes = await file.readAsBytes();
+          safePath = await SettingsService.copyCustomSoundBytes(file.name, bytes);
+        } catch (_) {
+          if (file.path != null) {
+            safePath = await SettingsService.copyCustomSoundFile(file.path!);
+          } else {
+            safePath = file.name;
+          }
+        }
         widget.onCustomPathChanged(safePath);
         widget.onSoundChanged('custom');
       } else {
