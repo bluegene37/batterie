@@ -80,6 +80,173 @@ class ThresholdList extends StatelessWidget {
     );
   }
 
+  // Gene - Oct 16, 2026: Updated ThresholdList with Neumorphic raised badges and soft dividers. Preserved previous flat implementation below.
+  // @override
+  // Widget build(BuildContext context) {
+  //   final theme = Theme.of(context);
+  //   final status = BatteryStatusColors.of(context);
+  //
+  //   return PaperSurface(
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(
+  //           width: double.infinity,
+  //           child: Wrap(
+  //             alignment: WrapAlignment.spaceBetween,
+  //             crossAxisAlignment: WrapCrossAlignment.center,
+  //             spacing: 8,
+  //             runSpacing: 6,
+  //             children: [
+  //               Row(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   Icon(
+  //                     Icons.notifications_active_outlined,
+  //                     color: theme.colorScheme.primary,
+  //                     size: 17,
+  //                   ),
+  //                   const SizedBox(width: 8),
+  //                   Text(
+  //                     'Alarm Thresholds',
+  //                     style: theme.textTheme.titleSmall?.copyWith(
+  //                       fontWeight: FontWeight.w700,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               FilledButton.icon(
+  //                 onPressed: () => _showAddDialog(context),
+  //                 icon: const Icon(Icons.add, size: 14),
+  //                 label: const Text('Add Threshold'),
+  //                 style: FilledButton.styleFrom(
+  //                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  //                   visualDensity: VisualDensity.compact,
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         const SizedBox(height: 5),
+  //         Text(
+  //           'App rings loudly when battery drops to or below these percentages while discharging. Each threshold has its own sound.',
+  //           style: theme.textTheme.bodySmall?.copyWith(
+  //             color: theme.colorScheme.onSurfaceVariant,
+  //           ),
+  //         ),
+  //         const SizedBox(height: 8),
+  //         if (rules.isEmpty)
+  //           Padding(
+  //             padding: const EdgeInsets.symmetric(vertical: 16.0),
+  //             child: Center(
+  //               child: Text(
+  //                 'No thresholds set. Click "Add Threshold" above.',
+  //                 style: theme.textTheme.bodySmall?.copyWith(
+  //                   color: theme.colorScheme.onSurfaceVariant,
+  //                 ),
+  //               ),
+  //             ),
+  //           )
+  //         else
+  //           ListView.separated(
+  //             shrinkWrap: true,
+  //             physics: const NeverScrollableScrollPhysics(),
+  //             itemCount: rules.length,
+  //             separatorBuilder: (context, index) => Divider(
+  //               height: 6,
+  //               color: theme.dividerTheme.color,
+  //             ),
+  //             itemBuilder: (context, index) {
+  //               final rule = rules[index];
+  //               final badgeColor = rule.isEnabled
+  //                   ? (rule.percentage <= 10 ? status.critical : status.warning)
+  //                   : theme.colorScheme.onSurfaceVariant;
+  //
+  //               return Padding(
+  //                 padding: const EdgeInsets.symmetric(vertical: 3.0),
+  //                 child: Row(
+  //                   children: [
+  //                     Container(
+  //                       constraints: const BoxConstraints(minWidth: 38, minHeight: 26),
+  //                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+  //                       decoration: BoxDecoration(
+  //                         color: badgeColor.withValues(alpha: rule.isEnabled ? 0.14 : 0.06),
+  //                         borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+  //                         border: Border.all(
+  //                           color: badgeColor.withValues(alpha: rule.isEnabled ? 0.35 : 0.15),
+  //                           width: 1.0,
+  //                         ),
+  //                       ),
+  //                       alignment: Alignment.center,
+  //                       child: Text(
+  //                         '${rule.percentage}%',
+  //                         style: theme.textTheme.labelMedium?.copyWith(
+  //                           color: badgeColor,
+  //                           fontWeight: FontWeight.w700,
+  //                           fontFeatures: const [FontFeature.tabularFigures()],
+  //                         ),
+  //                       ),
+  //                     ),
+  //                     const SizedBox(width: 9),
+  //                     Expanded(
+  //                       child: Column(
+  //                         crossAxisAlignment: CrossAxisAlignment.start,
+  //                         children: [
+  //                           Text(
+  //                             rule.label,
+  //                             style: theme.textTheme.bodyMedium?.copyWith(
+  //                               fontWeight: FontWeight.w600,
+  //                               color: rule.isEnabled ? null : theme.colorScheme.onSurfaceVariant,
+  //                             ),
+  //                           ),
+  //                           const SizedBox(height: 1),
+  //                           Text(
+  //                             'Alarm: ${AlarmService.describeSound(rule.soundType, rule.customSoundPath)}',
+  //                             overflow: TextOverflow.ellipsis,
+  //                             style: theme.textTheme.bodySmall?.copyWith(
+  //                               color: theme.colorScheme.onSurfaceVariant,
+  //                             ),
+  //                           ),
+  //                         ],
+  //                       ),
+  //                     ),
+  //                     IconButton(
+  //                       icon: const Icon(Icons.edit_outlined, size: 15),
+  //                       tooltip: 'Edit threshold',
+  //                       visualDensity: VisualDensity.compact,
+  //                       splashRadius: 14,
+  //                       onPressed: () => _showEditDialog(context, rule),
+  //                     ),
+  //                     Transform.scale(
+  //                       scale: 0.8,
+  //                       child: MergeSemantics(
+  //                         child: Semantics(
+  //                           label: 'Enable ${rule.label} threshold',
+  //                           child: Switch(
+  //                             value: rule.isEnabled,
+  //                             onChanged: (val) {
+  //                               onUpdate(rule.copyWith(isEnabled: val));
+  //                             },
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ),
+  //                     IconButton(
+  //                       icon: const Icon(Icons.delete_outline, size: 15),
+  //                       tooltip: 'Delete threshold',
+  //                       visualDensity: VisualDensity.compact,
+  //                       splashRadius: 14,
+  //                       onPressed: () => onDelete(rule.id),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               );
+  //             },
+  //           ),
+  //       ],
+  //     ),
+  //   );
+  // }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -152,7 +319,7 @@ class ThresholdList extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: rules.length,
               separatorBuilder: (context, index) => Divider(
-                height: 6,
+                height: 8,
                 color: theme.dividerTheme.color,
               ),
               itemBuilder: (context, index) {
@@ -166,11 +333,12 @@ class ThresholdList extends StatelessWidget {
                   child: Row(
                     children: [
                       Container(
-                        constraints: const BoxConstraints(minWidth: 38, minHeight: 26),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        constraints: const BoxConstraints(minWidth: 40, minHeight: 28),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: badgeColor.withValues(alpha: rule.isEnabled ? 0.14 : 0.06),
+                          color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+                          boxShadow: NeumorphicTheme.softShadows(context, distance: 1.5, blur: 3),
                           border: Border.all(
                             color: badgeColor.withValues(alpha: rule.isEnabled ? 0.35 : 0.15),
                             width: 1.0,
@@ -186,7 +354,7 @@ class ThresholdList extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 9),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,11 +566,31 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Trigger Percentage:', style: theme.textTheme.bodyMedium),
+                // Gene - Oct 16, 2026: Styled percentage badge with soft Neumorphic elevation. Preserved previous flat container below.
+                // Container(
+                //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                //   decoration: BoxDecoration(
+                //     color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                //     borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+                //   ),
+                //   child: Text(
+                //     '$_percentage%',
+                //     style: theme.textTheme.titleSmall?.copyWith(
+                //       color: theme.colorScheme.primary,
+                //       fontWeight: FontWeight.bold,
+                //     ),
+                //   ),
+                // ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+                    boxShadow: NeumorphicTheme.softShadows(context, distance: 1.5, blur: 3),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      width: 1.0,
+                    ),
                   ),
                   child: Text(
                     '$_percentage%',
@@ -417,13 +605,47 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
             const SizedBox(height: 6),
             // Stepper buttons give a single-tap alternative to dragging the
             // slider (WCAG 2.5.7) and fine control on a trackpad.
+            // Gene - Oct 16, 2026: Wrapped stepper buttons in soft Neumorphic push-button containers for tactile feedback. Preserved previous buttons below.
+            // Row(
+            //   children: [
+            //     IconButton(
+            //       tooltip: 'Decrease percentage',
+            //       visualDensity: VisualDensity.compact,
+            //       icon: const Icon(Icons.remove, size: 16),
+            //       onPressed: _percentage > 1 ? () => _step(-1) : null,
+            //     ),
+            //     Expanded(
+            //       child: Slider(
+            //         value: _percentage.toDouble(),
+            //         min: 1,
+            //         max: 99,
+            //         divisions: 98,
+            //         label: '$_percentage%',
+            //         onChanged: (val) => setState(() => _percentage = val.round()),
+            //       ),
+            //     ),
+            //     IconButton(
+            //       tooltip: 'Increase percentage',
+            //       visualDensity: VisualDensity.compact,
+            //       icon: const Icon(Icons.add, size: 16),
+            //       onPressed: _percentage < 99 ? () => _step(1) : null,
+            //     ),
+            //   ],
+            // ),
             Row(
               children: [
-                IconButton(
-                  tooltip: 'Decrease percentage',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.remove, size: 16),
-                  onPressed: _percentage > 1 ? () => _step(-1) : null,
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: NeumorphicTheme.softShadows(context, distance: 1.5, blur: 3),
+                  ),
+                  child: IconButton(
+                    tooltip: 'Decrease percentage',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.remove, size: 16),
+                    onPressed: _percentage > 1 ? () => _step(-1) : null,
+                  ),
                 ),
                 Expanded(
                   child: Slider(
@@ -435,11 +657,18 @@ class _ThresholdEditorDialogState extends State<_ThresholdEditorDialog> {
                     onChanged: (val) => setState(() => _percentage = val.round()),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Increase percentage',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.add, size: 16),
-                  onPressed: _percentage < 99 ? () => _step(1) : null,
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: NeumorphicTheme.softShadows(context, distance: 1.5, blur: 3),
+                  ),
+                  child: IconButton(
+                    tooltip: 'Increase percentage',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.add, size: 16),
+                    onPressed: _percentage < 99 ? () => _step(1) : null,
+                  ),
                 ),
               ],
             ),

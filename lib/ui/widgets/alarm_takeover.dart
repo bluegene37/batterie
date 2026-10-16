@@ -162,12 +162,25 @@ class _AlarmTakeoverState extends State<AlarmTakeover>
                     minWidth: double.infinity,
                     minHeight: _actionHeight,
                   ),
+                  // Gene - Oct 16, 2026: Enhanced Snooze button in AlarmTakeover with soft tactile elevation. Preserved previous button below.
+                  // child: FilledButton.icon(
+                  //   onPressed: widget.onSnooze,
+                  //   style: FilledButton.styleFrom(
+                  //     backgroundColor: scheme.onError,
+                  //     foregroundColor: scheme.errorContainer,
+                  //     shape: actionShape,
+                  //   ),
+                  //   icon: const Icon(Icons.snooze, size: 18),
+                  //   label: Text('Snooze (${widget.snoozeMinutes}m)'),
+                  // ),
                   child: FilledButton.icon(
                     onPressed: widget.onSnooze,
                     style: FilledButton.styleFrom(
                       backgroundColor: scheme.onError,
                       foregroundColor: scheme.errorContainer,
                       shape: actionShape,
+                      elevation: 3,
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
                     ),
                     icon: const Icon(Icons.snooze, size: 18),
                     label: Text('Snooze (${widget.snoozeMinutes}m)'),

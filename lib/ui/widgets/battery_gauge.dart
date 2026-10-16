@@ -28,9 +28,126 @@ class BatteryGauge extends StatelessWidget {
     return info.isDischarging ? '$tr remaining' : '$tr until full';
   }
 
+  // Gene - Oct 16, 2026: Upgraded BatteryGauge to Neumorphic style with embossed icon badge, percentage pill, and sunken gauge groove. Preserved previous flat implementation below.
+  // @override
+  // Widget build(BuildContext context) {
+  //   final theme = Theme.of(context);
+  //   final statusColor = _statusColor(BatteryStatusColors.of(context));
+  //   final fraction = (info.percentage / 100.0).clamp(0.0, 1.0);
+  //   final remainingText = _timeRemainingText;
+  //
+  //   return PaperSurface(
+  //     child: Column(
+  //       children: [
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             Expanded(
+  //               child: Row(
+  //                 children: [
+  //                   Container(
+  //                     width: 38,
+  //                     height: 38,
+  //                     decoration: BoxDecoration(
+  //                       color: statusColor.withValues(alpha: 0.12),
+  //                       borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+  //                       border: Border.all(color: theme.colorScheme.outline, width: 1.0),
+  //                     ),
+  //                     child: Icon(
+  //                       info.isCharging
+  //                           ? Icons.battery_charging_full_rounded
+  //                           : (info.percentage <= 20
+  //                               ? Icons.battery_alert_rounded
+  //                               : Icons.battery_std_rounded),
+  //                       color: statusColor,
+  //                       size: 20,
+  //                     ),
+  //                   ),
+  //                   const SizedBox(width: 10),
+  //                   Expanded(
+  //                     child: Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         Text(
+  //                           'CURRENT BATTERY',
+  //                           style: theme.textTheme.labelSmall?.copyWith(
+  //                             fontFamily: 'Archivo Narrow',
+  //                             letterSpacing: 1.4,
+  //                             fontWeight: FontWeight.w600,
+  //                             color: theme.colorScheme.onSurfaceVariant,
+  //                           ),
+  //                         ),
+  //                         const SizedBox(height: 2),
+  //                         Text(
+  //                           info.isDischarging
+  //                               : (info.isCharging ? 'Charging' : 'On AC Power'),
+  //                           style: theme.textTheme.bodyMedium?.copyWith(
+  //                             fontWeight: FontWeight.w600,
+  //                           ),
+  //                         ),
+  //                         if (remainingText != null) ...[
+  //                           const SizedBox(height: 1),
+  //                           Text(
+  //                             remainingText,
+  //                             style: theme.textTheme.bodySmall?.copyWith(
+  //                               color: theme.colorScheme.onSurfaceVariant,
+  //                               fontWeight: FontWeight.w500,
+  //                             ),
+  //                           ),
+  //                         ],
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //             const SizedBox(width: 8),
+  //             Container(
+  //               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+  //               decoration: BoxDecoration(
+  //                 color: statusColor.withValues(alpha: 0.12),
+  //                 borderRadius: BorderRadius.circular(AppTheme.controlRadius),
+  //                 border: Border.all(color: statusColor.withValues(alpha: 0.25), width: 1.0),
+  //               ),
+  //               child: Row(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   if (info.isCharging) ...[
+  //                     Icon(Icons.bolt_rounded, color: statusColor, size: 15),
+  //                     const SizedBox(width: 2),
+  //                   ],
+  //                   Text(
+  //                     '${info.percentage}%',
+  //                     style: theme.textTheme.titleMedium?.copyWith(
+  //                       color: statusColor,
+  //                       fontWeight: FontWeight.w700,
+  //                       letterSpacing: 0.2,
+  //                       fontFeatures: const [FontFeature.tabularFigures()],
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 12),
+  //         ClipRRect(
+  //           borderRadius: BorderRadius.circular(2),
+  //           child: LinearProgressIndicator(
+  //             value: fraction,
+  //             minHeight: 5,
+  //             backgroundColor: theme.colorScheme.surfaceContainerHighest,
+  //             valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final statusColor = _statusColor(BatteryStatusColors.of(context));
     final fraction = (info.percentage / 100.0).clamp(0.0, 1.0);
     final remainingText = _timeRemainingText;
@@ -45,12 +162,16 @@ class BatteryGauge extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 38,
-                      height: 38,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(AppTheme.controlRadius),
-                        border: Border.all(color: theme.colorScheme.outline, width: 1.0),
+                        boxShadow: NeumorphicTheme.softShadows(context, distance: 2.5, blur: 5),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.8),
+                          width: 1.0,
+                        ),
                       ),
                       child: Icon(
                         info.isCharging
@@ -59,10 +180,10 @@ class BatteryGauge extends StatelessWidget {
                                 ? Icons.battery_alert_rounded
                                 : Icons.battery_std_rounded),
                         color: statusColor,
-                        size: 20,
+                        size: 21,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,9 +191,8 @@ class BatteryGauge extends StatelessWidget {
                           Text(
                             'CURRENT BATTERY',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              fontFamily: 'Archivo Narrow',
-                              letterSpacing: 1.4,
-                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.3,
+                              fontWeight: FontWeight.w700,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -82,7 +202,7 @@ class BatteryGauge extends StatelessWidget {
                                 ? 'Discharging'
                                 : (info.isCharging ? 'Charging' : 'On AC Power'),
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           if (remainingText != null) ...[
@@ -103,24 +223,28 @@ class BatteryGauge extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
+                  color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(AppTheme.controlRadius),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.25), width: 1.0),
+                  boxShadow: NeumorphicTheme.softShadows(context, distance: 2.0, blur: 4),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.8),
+                    width: 1.0,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (info.isCharging) ...[
                       Icon(Icons.bolt_rounded, color: statusColor, size: 15),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 3),
                     ],
                     Text(
                       '${info.percentage}%',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: statusColor,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
@@ -130,14 +254,25 @@ class BatteryGauge extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: fraction,
-              minHeight: 5,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+          const SizedBox(height: 14),
+          Container(
+            height: 9,
+            padding: const EdgeInsets.all(1.5),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFFA3B1C6).withValues(alpha: 0.4),
+                width: 0.8,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: fraction,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+              ),
             ),
           ),
         ],

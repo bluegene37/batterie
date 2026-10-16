@@ -181,10 +181,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             ExcludeSemantics(
+                              // Gene - Oct 16, 2026: Replaced coffee icon with blur_on icon to match soft Neumorphism aesthetic. Preserved coffee icon below.
+                              // child: Icon(
+                              //   Icons.coffee_rounded,
+                              //   size: 13,
+                              //   color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                              // ),
                               child: Icon(
-                                Icons.coffee_rounded,
-                                size: 13,
-                                color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                                Icons.blur_on_rounded,
+                                size: 14,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.65),
                               ),
                             ),
                             const SizedBox(width: 5),

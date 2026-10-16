@@ -49,15 +49,36 @@ class ActiveAlarmBanner extends StatelessWidget {
       curve: AppMotion.standardCurve,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      // Gene - Oct 16, 2026: Enhanced ActiveAlarmBanner with soft dual-glow Neumorphic shadow styling. Preserved previous decoration below.
+      // decoration: BoxDecoration(
+      //   color: bannerColor,
+      //   borderRadius: radius,
+      //   border: Border.all(color: scheme.outline, width: 1.0),
+      //   boxShadow: [
+      //     BoxShadow(
+      //       color: bannerColor.withValues(alpha: 0.25),
+      //       blurRadius: 14,
+      //       offset: const Offset(0, 4),
+      //     ),
+      //   ],
+      // ),
       decoration: BoxDecoration(
         color: bannerColor,
         borderRadius: radius,
-        border: Border.all(color: scheme.outline, width: 1.0),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.2),
+          width: 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: bannerColor.withValues(alpha: 0.25),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: Colors.white.withValues(alpha: 0.18),
+            blurRadius: 8,
+            offset: const Offset(-3, -3),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(4, 5),
           ),
         ],
       ),
