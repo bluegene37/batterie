@@ -9,13 +9,28 @@ class TrayWindowService with TrayListener, WindowListener {
   VoidCallback? _onTest;
   VoidCallback? _onQuit;
   VoidCallback? _onToggleTheme;
+  // Gene - Oct 24, 2026: Added update callbacks for menu bar and tray integration.
+  VoidCallback? _onCheckForUpdates;
+  VoidCallback? _onInstallUpdate;
+  bool _hasUpdate = false;
+  String? _updateVersion;
+  bool _isCheckingUpdates = false;
   bool _isInitialized = false;
 
+  // Gene - Oct 24, 2026: Extended init with onCheckForUpdates and onInstallUpdate callbacks. Preserved previous init signature below.
+  // Future<void> init({
+  //   required VoidCallback onShow,
+  //   required VoidCallback onTest,
+  //   required VoidCallback onQuit,
+  //   VoidCallback? onToggleTheme,
+  // }) async {
   Future<void> init({
     required VoidCallback onShow,
     required VoidCallback onTest,
     required VoidCallback onQuit,
     VoidCallback? onToggleTheme,
+    VoidCallback? onCheckForUpdates,
+    VoidCallback? onInstallUpdate,
   }) async {
     if (!Platform.isMacOS && !Platform.isWindows && !Platform.isLinux) {
       return;
@@ -25,6 +40,8 @@ class TrayWindowService with TrayListener, WindowListener {
     _onTest = onTest;
     _onQuit = onQuit;
     _onToggleTheme = onToggleTheme;
+    _onCheckForUpdates = onCheckForUpdates;
+    _onInstallUpdate = onInstallUpdate;
 
     try {
       await windowManager.ensureInitialized();
@@ -82,6 +99,45 @@ class TrayWindowService with TrayListener, WindowListener {
     }
   }
 
+  // Gene - Oct 24, 2026: Extended _updateContextMenu to support update status and update actions. Preserved previous _updateContextMenu below.
+  // Future<void> _updateContextMenu({String? batterySummary}) async {
+  //   final menu = Menu(
+  //     items: [
+  //       MenuItem(
+  //         key: 'status',
+  //         label: batterySummary ?? 'Batterie: Monitoring',
+  //         disabled: true,
+  //       ),
+  //       MenuItem.separator(),
+  //       MenuItem(
+  //         key: 'show_app',
+  //         label: 'Show Dashboard',
+  //       ),
+  //       MenuItem(
+  //         key: 'hide_app',
+  //         label: Platform.isMacOS ? 'Hide to Menu Bar' : 'Hide to System Tray',
+  //       ),
+  //       MenuItem(
+  //         key: 'test_alarm',
+  //         label: 'Test Alarm Sound',
+  //       ),
+  //       MenuItem(
+  //         key: 'toggle_theme',
+  //         label: 'Toggle Dark / Light Theme',
+  //       ),
+  //       MenuItem.separator(),
+  //       MenuItem(
+  //         key: 'quit_app',
+  //         label: 'Quit',
+  //       ),
+  //     ],
+  //   );
+  //   try {
+  //     await trayManager.setContextMenu(menu);
+  //   } catch (e) {
+  //     debugPrint('Error setting context menu: $e');
+  //   }
+  // }
   Future<void> _updateContextMenu({String? batterySummary}) async {
     final menu = Menu(
       items: [
@@ -90,6 +146,20 @@ class TrayWindowService with TrayListener, WindowListener {
           label: batterySummary ?? 'Batterie: Monitoring',
           disabled: true,
         ),
+        if (_hasUpdate) ...[
+          MenuItem(
+            key: 'install_update',
+            label: '⚡ Install Update (v${_updateVersion ?? ""})',
+          ),
+        ] else ...[
+          MenuItem(
+            key: 'check_updates',
+            label: _isCheckingUpdates
+                ? 'Checking for Updates…'
+                : 'Check for Updates…',
+            disabled: _isCheckingUpdates,
+          ),
+        ],
         MenuItem.separator(),
         MenuItem(
           key: 'show_app',
@@ -126,8 +196,34 @@ class TrayWindowService with TrayListener, WindowListener {
     }
   }
 
-  Future<void> updateTray(BatteryInfo info, bool isRinging) async {
+  // Gene - Oct 24, 2026: Extended updateTray to accept update state. Preserved previous updateTray below.
+  // Future<void> updateTray(BatteryInfo info, bool isRinging) async {
+  //   if (!_isInitialized) return;
+  //   try {
+  //     final summary = '${info.statusText} ${isRinging ? "[ALARM RINGING]" : ""}';
+  //     await trayManager.setToolTip('Batterie: $summary');
+  //     await _setupTrayIcon(isRinging);
+  //     await _updateContextMenu(batterySummary: summary);
+  //   } catch (e) {
+  //     debugPrint('Error updating tray: $e');
+  //   }
+  //   // Keep the menu bar readout current while the alarm is ringing
+  //   // (macOS only; ignored elsewhere).
+  //   await _attempt('tray title',
+  //       () => trayManager.setTitle(isRinging ? alarmModeTitle(info.percentage) : ''));
+  // }
+  Future<void> updateTray(
+    BatteryInfo info,
+    bool isRinging, {
+    bool? hasUpdate,
+    String? updateVersion,
+    bool? isCheckingUpdates,
+  }) async {
     if (!_isInitialized) return;
+    if (hasUpdate != null) _hasUpdate = hasUpdate;
+    if (updateVersion != null) _updateVersion = updateVersion;
+    if (isCheckingUpdates != null) _isCheckingUpdates = isCheckingUpdates;
+
     try {
       final summary = '${info.statusText} ${isRinging ? "[ALARM RINGING]" : ""}';
       await trayManager.setToolTip('Batterie: $summary');
@@ -265,6 +361,15 @@ class TrayWindowService with TrayListener, WindowListener {
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
+      // Gene - Oct 24, 2026: Added handling for tray update actions.
+      case 'install_update':
+        bringToFront();
+        _onInstallUpdate?.call();
+        break;
+      case 'check_updates':
+        bringToFront();
+        _onCheckForUpdates?.call();
+        break;
       case 'show_app':
         bringToFront();
         _onShow?.call();

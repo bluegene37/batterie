@@ -8,6 +8,9 @@ import 'widgets/alarm_takeover.dart';
 import 'widgets/audio_settings_card.dart';
 import 'widgets/battery_gauge.dart';
 import 'widgets/threshold_list.dart';
+// Gene - Oct 24, 2026: Added UpdateBanner and UpdateInfo imports for auto-update UI.
+import '../models/update_info.dart';
+import 'widgets/update_banner.dart';
 
 class DashboardScreen extends StatefulWidget {
   final BatteryAlarmController controller;
@@ -141,6 +144,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onSnooze: () => widget.controller.snooze(),
                           onDismiss: () => widget.controller.dismiss(),
                         ),
+                        // Gene - Oct 24, 2026: Render UpdateBanner when update is available, downloading, installing, or error.
+                        if (widget.controller.hasUpdateAvailable ||
+                            widget.controller.updateStatus == UpdateStatus.downloading ||
+                            widget.controller.updateStatus == UpdateStatus.installing ||
+                            widget.controller.updateStatus == UpdateStatus.error ||
+                            widget.controller.updateStatus == UpdateStatus.upToDate)
+                          UpdateBanner(
+                            updateInfo: widget.controller.updateInfo,
+                            status: widget.controller.updateStatus,
+                            progress: widget.controller.downloadProgress,
+                            errorMessage: widget.controller.updateErrorMessage,
+                            onUpdate: () => widget.controller.installUpdate(),
+                            onDismiss: () => widget.controller.dismissUpdateBanner(),
+                          ),
                         BatteryGauge(info: widget.controller.batteryInfo),
                         const SizedBox(height: 10),
                         ThresholdList(
@@ -162,6 +179,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
+                        // Gene - Oct 24, 2026: Passed auto-update controls to AudioSettingsCard. Preserved previous AudioSettingsCard below.
+                        // AudioSettingsCard(
+                        //   selectedSound: widget.controller.defaultSound,
+                        //   customSoundPath: widget.controller.customSoundPath,
+                        //   volume: widget.controller.volume,
+                        //   snoozeMinutes: widget.controller.snoozeMinutes,
+                        //   repeatCount: widget.controller.repeatCount,
+                        //   isTesting: widget.controller.isTesting,
+                        //   onSoundChanged: widget.controller.setDefaultSound,
+                        //   onCustomPathChanged: widget.controller.setCustomSoundPath,
+                        //   onVolumeChanged: widget.controller.setVolume,
+                        //   onSnoozeChanged: widget.controller.setSnoozeMinutes,
+                        //   onRepeatCountChanged: widget.controller.setRepeatCount,
+                        //   onTestAlarm: widget.controller.testAlarm,
+                        // ),
                         AudioSettingsCard(
                           selectedSound: widget.controller.defaultSound,
                           customSoundPath: widget.controller.customSoundPath,
@@ -175,6 +207,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onSnoozeChanged: widget.controller.setSnoozeMinutes,
                           onRepeatCountChanged: widget.controller.setRepeatCount,
                           onTestAlarm: widget.controller.testAlarm,
+                          autoUpdateEnabled: widget.controller.autoUpdateEnabled,
+                          onAutoUpdateChanged: widget.controller.setAutoUpdateEnabled,
+                          onCheckForUpdates: () => widget.controller.checkForUpdates(manual: true),
+                          isCheckingUpdates: widget.controller.updateStatus == UpdateStatus.checking,
                         ),
                         const SizedBox(height: 14),
                         Row(

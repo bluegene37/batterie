@@ -4,6 +4,8 @@ import 'services/battery_service.dart';
 import 'services/tray_window_service.dart';
 import 'theme/app_theme.dart';
 import 'ui/dashboard_screen.dart';
+// Gene - Oct 24, 2026: Added UpdateStatus import for tray update state wiring.
+import 'models/update_info.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,10 +16,22 @@ void main() async {
 
   await controller.init();
 
+  // Gene - Oct 24, 2026: Hooked onCheckForUpdates and onInstallUpdate into tray service. Preserved previous trayService.init below.
+  // await trayService.init(
+  //   onShow: () {},
+  //   onTest: () => controller.testAlarm(),
+  //   onToggleTheme: () => controller.toggleThemeMode(),
+  //   onQuit: () {
+  //     controller.dispose();
+  //     batteryService.dispose();
+  //   },
+  // );
   await trayService.init(
     onShow: () {},
     onTest: () => controller.testAlarm(),
     onToggleTheme: () => controller.toggleThemeMode(),
+    onCheckForUpdates: () => controller.checkForUpdates(manual: true),
+    onInstallUpdate: () => controller.installUpdate(),
     onQuit: () {
       controller.dispose();
       batteryService.dispose();
@@ -36,10 +50,20 @@ void main() async {
     await trayService.updateTray(controller.batteryInfo, false);
   };
 
+  // Gene - Oct 24, 2026: Forwarded update flags to updateTray on controller state change. Preserved previous listener below.
+  // controller.addListener(() {
+  //   trayService.updateTray(
+  //     controller.batteryInfo,
+  //     controller.alarmState.isRinging,
+  //   );
+  // });
   controller.addListener(() {
     trayService.updateTray(
       controller.batteryInfo,
       controller.alarmState.isRinging,
+      hasUpdate: controller.hasUpdateAvailable,
+      updateVersion: controller.updateInfo?.version,
+      isCheckingUpdates: controller.updateStatus == UpdateStatus.checking,
     );
   });
 

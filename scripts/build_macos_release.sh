@@ -131,6 +131,11 @@ if [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && [ -n "${APPLE_ID}" ]; then
   echo "==> Stapling notarization ticket to DMG..."
   xcrun stapler staple "${DIST_DIR}/batterie-macos.dmg"
   xcrun stapler staple "${APP_PATH}"
+  # Gene - Oct 24, 2026: Re-package zip archive after stapling so ZIP includes stapled notarization ticket, and validate DMG ticket.
+  echo "==> Re-packaging ${DIST_DIR}/batterie-macos.zip with stapled notarization ticket..."
+  rm -f "${DIST_DIR}/batterie-macos.zip"
+  ditto -c -k --sequesterRsrc --keepParent "${APP_PATH}" "${DIST_DIR}/batterie-macos.zip"
+  xcrun stapler validate "${DIST_DIR}/batterie-macos.dmg"
   echo "==> Successfully notarized and stapled!"
 elif xcrun notarytool history --keychain-profile "${NOTARY_PROFILE}" >/dev/null 2>&1; then
   echo "==> Submitting DMG to Apple Notary Service using keychain profile '${NOTARY_PROFILE}'..."
@@ -139,6 +144,11 @@ elif xcrun notarytool history --keychain-profile "${NOTARY_PROFILE}" >/dev/null 
   echo "==> Stapling notarization ticket to DMG..."
   xcrun stapler staple "${DIST_DIR}/batterie-macos.dmg"
   xcrun stapler staple "${APP_PATH}"
+  # Gene - Oct 24, 2026: Re-package zip archive after stapling so ZIP includes stapled notarization ticket, and validate DMG ticket.
+  echo "==> Re-packaging ${DIST_DIR}/batterie-macos.zip with stapled notarization ticket..."
+  rm -f "${DIST_DIR}/batterie-macos.zip"
+  ditto -c -k --sequesterRsrc --keepParent "${APP_PATH}" "${DIST_DIR}/batterie-macos.zip"
+  xcrun stapler validate "${DIST_DIR}/batterie-macos.dmg"
   echo "==> Successfully notarized and stapled!"
 else
   echo ""

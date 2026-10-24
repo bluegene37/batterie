@@ -20,6 +20,8 @@ class SettingsService {
   static const String _keyRepeatCount = 'alarm_repeat_count';
   static const String _keyCustomSoundPath = 'alarm_custom_sound_path';
   static const String _keyThemeMode = 'app_theme_mode';
+  // Gene - Oct 24, 2026: Added persistence key for auto-update enabled toggle.
+  static const String _keyAutoUpdate = 'app_auto_update_enabled';
 
   static const List<ThresholdRule> defaultThresholds = [
     ThresholdRule(
@@ -234,5 +236,16 @@ class SettingsService {
   Future<void> saveThemeMode(ThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyThemeMode, mode.name);
+  }
+
+  // Gene - Oct 24, 2026: Added methods to load and save auto-update preferences.
+  Future<bool> loadAutoUpdateEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAutoUpdate) ?? true;
+  }
+
+  Future<void> saveAutoUpdateEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoUpdate, enabled);
   }
 }

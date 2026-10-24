@@ -17,5 +17,8 @@
 	<true/>
 	<key>com.apple.security.files.downloads.read-only</key>
 	<true/>
+	<!-- Gene - Oct 24, 2026: Added network client entitlement to query GitHub Releases API and download updates on macOS in debug/profile builds -->
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>

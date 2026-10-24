@@ -70,9 +70,30 @@ class AudioSettingsCard extends StatefulWidget {
   final Function(int minutes) onSnoozeChanged;
   final Function(int count) onRepeatCountChanged;
   final VoidCallback onTestAlarm;
+  // Gene - Oct 24, 2026: Added auto-update controls to AudioSettingsCard.
+  final bool autoUpdateEnabled;
+  final ValueChanged<bool>? onAutoUpdateChanged;
+  final VoidCallback? onCheckForUpdates;
+  final bool isCheckingUpdates;
 
   static const List<int> supportedRepeatCounts = [1, 2, 3, 5, 10, 0];
 
+  // Gene - Oct 24, 2026: Added autoUpdateEnabled and update callbacks to constructor with backward-compatible defaults. Preserved previous constructor below.
+  // const AudioSettingsCard({
+  //   super.key,
+  //   required this.selectedSound,
+  //   this.customSoundPath,
+  //   required this.volume,
+  //   required this.snoozeMinutes,
+  //   required this.repeatCount,
+  //   required this.isTesting,
+  //   required this.onSoundChanged,
+  //   required this.onCustomPathChanged,
+  //   required this.onVolumeChanged,
+  //   required this.onSnoozeChanged,
+  //   required this.onRepeatCountChanged,
+  //   required this.onTestAlarm,
+  // });
   const AudioSettingsCard({
     super.key,
     required this.selectedSound,
@@ -87,6 +108,10 @@ class AudioSettingsCard extends StatefulWidget {
     required this.onSnoozeChanged,
     required this.onRepeatCountChanged,
     required this.onTestAlarm,
+    this.autoUpdateEnabled = true,
+    this.onAutoUpdateChanged,
+    this.onCheckForUpdates,
+    this.isCheckingUpdates = false,
   });
 
   @override
@@ -876,6 +901,73 @@ class _AudioSettingsCardState extends State<AudioSettingsCard> {
                     },
                   ),
                 ),
+              ),
+            ],
+          ),
+          // Gene - Oct 24, 2026: Added auto-update preference toggle and check now button.
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.autorenew_rounded,
+                    size: 15,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Auto-Update App:',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.onCheckForUpdates != null) ...[
+                    TextButton(
+                      onPressed: widget.isCheckingUpdates
+                          ? null
+                          : widget.onCheckForUpdates,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: widget.isCheckingUpdates
+                          ? const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(strokeWidth: 1.8),
+                            )
+                          : Text(
+                              'Check now',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Transform.scale(
+                    scale: 0.72,
+                    alignment: Alignment.centerRight,
+                    child: Switch(
+                      value: widget.autoUpdateEnabled,
+                      // Gene - Oct 24, 2026: Replaced deprecated activeColor with activeThumbColor. Preserved previous activeColor below.
+                      // activeColor: theme.colorScheme.primary,
+                      activeThumbColor: theme.colorScheme.primary,
+                      onChanged: widget.onAutoUpdateChanged,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

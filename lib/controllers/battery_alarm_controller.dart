@@ -1,4 +1,6 @@
 import 'dart:async';
+// Gene - Oct 24, 2026: Added dart:io for environment test detection.
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/alarm_state.dart';
 import '../models/battery_info.dart';
@@ -6,11 +8,16 @@ import '../models/threshold_rule.dart';
 import '../services/alarm_service.dart';
 import '../services/battery_service.dart';
 import '../services/settings_service.dart';
+// Gene - Oct 24, 2026: Added UpdateInfo and UpdateService imports for auto-update capabilities.
+import '../models/update_info.dart';
+import '../services/update_service.dart';
 
 class BatteryAlarmController extends ChangeNotifier {
   final BatteryService? _batteryService;
   final AlarmService _alarmService;
   final SettingsService _settingsService;
+  // Gene - Oct 24, 2026: Added UpdateService dependency.
+  final UpdateService _updateService;
 
   StreamSubscription<BatteryInfo>? _batterySubscription;
 
@@ -42,14 +49,35 @@ class BatteryAlarmController extends ChangeNotifier {
 
   bool _isTesting = false;
 
+  // Gene - Oct 24, 2026: Added state variables for application updates.
+  UpdateInfo? _updateInfo;
+  UpdateStatus _updateStatus = UpdateStatus.idle;
+  double _downloadProgress = 0.0;
+  String? _updateErrorMessage;
+  bool _autoUpdateEnabled = true;
+  bool _isUpdateBannerDismissed = false;
+  Timer? _updateInitialTimer;
+  Timer? _updateCheckTimer;
+
+  // Gene - Oct 24, 2026: Added UpdateService injection parameter to constructor. Preserved previous constructor below.
+  // BatteryAlarmController({
+  //   BatteryService? batteryService,
+  //   AlarmService? alarmService,
+  //   SettingsService? settingsService,
+  //   // ignore: prefer_initializing_formals
+  // })  : _batteryService = batteryService,
+  //       _alarmService = alarmService ?? AlarmService(),
+  //       _settingsService = settingsService ?? SettingsService();
   BatteryAlarmController({
     BatteryService? batteryService,
     AlarmService? alarmService,
     SettingsService? settingsService,
+    UpdateService? updateService,
     // ignore: prefer_initializing_formals
   })  : _batteryService = batteryService,
         _alarmService = alarmService ?? AlarmService(),
-        _settingsService = settingsService ?? SettingsService();
+        _settingsService = settingsService ?? SettingsService(),
+        _updateService = updateService ?? UpdateService();
 
   BatteryInfo get batteryInfo => _batteryInfo;
   AlarmState get alarmState => _alarmState;
@@ -61,8 +89,19 @@ class BatteryAlarmController extends ChangeNotifier {
   int get repeatCount => _repeatCount;
   bool get isTesting => _isTesting;
   ThemeMode get themeMode => _themeMode;
+  // Gene - Oct 24, 2026: Getters for update state.
+  UpdateInfo? get updateInfo => _updateInfo;
+  UpdateStatus get updateStatus => _updateStatus;
+  double get downloadProgress => _downloadProgress;
+  String? get updateErrorMessage => _updateErrorMessage;
+  bool get autoUpdateEnabled => _autoUpdateEnabled;
+  bool get isUpdateBannerDismissed => _isUpdateBannerDismissed;
+  bool get hasUpdateAvailable =>
+      _updateInfo != null && !_isUpdateBannerDismissed;
 
-  Future<void> init() async {
+  // Gene - Oct 24, 2026: Extended init with optional scheduleUpdateChecks parameter. Preserved previous init signature below.
+  // Future<void> init() async {
+  Future<void> init({bool scheduleUpdateChecks = true}) async {
     _thresholdRules = await _settingsService.loadThresholds();
     _volume = await _settingsService.loadVolume();
     _defaultSound = await _settingsService.loadDefaultSound();
@@ -107,6 +146,16 @@ class BatteryAlarmController extends ChangeNotifier {
     _snoozeMinutes = await _settingsService.loadSnoozeMinutes();
     _repeatCount = await _settingsService.loadRepeatCount();
     _themeMode = await _settingsService.loadThemeMode();
+    // Gene - Oct 24, 2026: Load auto-update setting and initiate update checks outside unit tests.
+    _autoUpdateEnabled = await _settingsService.loadAutoUpdateEnabled();
+    if (scheduleUpdateChecks && !Platform.environment.containsKey('FLUTTER_TEST')) {
+      _updateInitialTimer = Timer(const Duration(seconds: 3), () {
+        checkForUpdates();
+      });
+      _updateCheckTimer = Timer.periodic(const Duration(hours: 6), (_) {
+        checkForUpdates();
+      });
+    }
 
     if (_batteryService != null) {
       _batteryInfo = _batteryService.currentInfo;
@@ -385,8 +434,121 @@ class BatteryAlarmController extends ChangeNotifier {
     }
   }
 
+  // Gene - Oct 24, 2026: Methods for checking, installing, and managing application updates.
+  Future<void> checkForUpdates({bool manual = false}) async {
+    if (_updateStatus == UpdateStatus.downloading ||
+        _updateStatus == UpdateStatus.installing) {
+      return;
+    }
+
+    _updateStatus = UpdateStatus.checking;
+    _updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final update = await _updateService.checkForUpdates();
+      if (update != null) {
+        _updateInfo = update;
+        _updateStatus = UpdateStatus.available;
+        _isUpdateBannerDismissed = false;
+        notifyListeners();
+
+        // If auto-update is enabled and the alarm is not ringing, install automatically
+        if (_autoUpdateEnabled && !_alarmState.isRinging) {
+          await installUpdate();
+        }
+      } else {
+        _updateStatus = UpdateStatus.upToDate;
+        notifyListeners();
+
+        if (manual) {
+          // Reset status to idle after brief up-to-date feedback
+          Future.delayed(const Duration(seconds: 4), () {
+            if (_updateStatus == UpdateStatus.upToDate) {
+              _updateStatus = UpdateStatus.idle;
+              notifyListeners();
+            }
+          });
+        }
+      }
+    } catch (e) {
+      _updateStatus = UpdateStatus.error;
+      _updateErrorMessage = 'Update check failed: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> installUpdate() async {
+    final update = _updateInfo;
+    if (update == null) return;
+    if (_updateStatus == UpdateStatus.downloading ||
+        _updateStatus == UpdateStatus.installing) {
+      return;
+    }
+
+    // Do not interrupt while an alarm is ringing
+    if (_alarmState.isRinging) {
+      debugPrint('Update paused: alarm is actively ringing.');
+      return;
+    }
+
+    _updateStatus = UpdateStatus.downloading;
+    _downloadProgress = 0.0;
+    _updateErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final downloadedFile = await _updateService.downloadReleaseAsset(
+        update,
+        onProgress: (progress) {
+          _downloadProgress = progress;
+          notifyListeners();
+        },
+      );
+
+      _updateStatus = UpdateStatus.installing;
+      notifyListeners();
+
+      final success = await _updateService.installUpdate(downloadedFile);
+      if (!success) {
+        _updateStatus = UpdateStatus.error;
+        _updateErrorMessage = 'Failed to apply update.';
+        notifyListeners();
+      }
+    } catch (e) {
+      _updateStatus = UpdateStatus.error;
+      _updateErrorMessage = 'Download failed: $e';
+      notifyListeners();
+    }
+  }
+
+  void dismissUpdateBanner() {
+    _isUpdateBannerDismissed = true;
+    notifyListeners();
+  }
+
+  Future<void> setAutoUpdateEnabled(bool enabled) async {
+    if (_autoUpdateEnabled == enabled) return;
+    _autoUpdateEnabled = enabled;
+    await _settingsService.saveAutoUpdateEnabled(enabled);
+    notifyListeners();
+
+    if (enabled && _updateInfo != null && !_alarmState.isRinging) {
+      await installUpdate();
+    }
+  }
+
+  // Gene - Oct 24, 2026: Cancel update check timer on dispose. Preserved previous dispose below.
+  // @override
+  // void dispose() {
+  //   _batterySubscription?.cancel();
+  //   _alarmService.dispose();
+  //   super.dispose();
+  // }
   @override
   void dispose() {
+    _updateInitialTimer?.cancel();
+    _updateCheckTimer?.cancel();
     _batterySubscription?.cancel();
     _alarmService.dispose();
     super.dispose();
