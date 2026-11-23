@@ -4,12 +4,30 @@ on:
   push:
     tags:
       - 'v*'
+  # Gene - Nov, 23, 2026: Added Microsoft Store publish and draft (--noCommit) toggles for manual workflow_dispatch runs.
+  # workflow_dispatch:
+  #   inputs:
+  #     tag_name:
+  #       description: 'Release tag (e.g. v1.0.0)'
+  #       required: false
+  #       default: 'v1.0.0'
   workflow_dispatch:
     inputs:
       tag_name:
         description: 'Release tag (e.g. v1.0.0)'
         required: false
         default: 'v1.0.0'
+        type: string
+      publish_to_store:
+        description: 'Publish MSIX package to Microsoft Store'
+        required: false
+        default: true
+        type: boolean
+      store_draft:
+        description: 'Upload Microsoft Store submission as draft (--noCommit) without committing for certification'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -227,6 +245,7 @@ jobs:
 
       # Gene - Oct, 09, 2026: Build Microsoft Store MSIX package (unsigned; Microsoft signs it on Store ingestion).
       # Uploaded as a separate workflow artifact for manual submission in Partner Center, not attached to the GitHub Release.
+      # Gene - Nov, 23, 2026: Artifact is now automatically published by the publish-microsoft-store job (and remains downloadable for manual fallback).
       - name: Build Microsoft Store MSIX package
         run: dart run msix:create --store --build-windows false
 
@@ -283,3 +302,116 @@ jobs:
             release_assets/batterie-windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Gene - Nov, 23, 2026: Automated Microsoft Store MSIX publishing via Microsoft Store Developer CLI (msstore).
+  # Runs on v* tag pushes (auto-commits for Store certification) and on workflow_dispatch when publish_to_store is true
+  # (supports draft-only uploads via store_draft -> --noCommit). Skips gracefully with a warning if no Store secrets are set yet.
+  publish-microsoft-store:
+    name: Publish to Microsoft Store
+    needs: [build-macos, build-windows]
+    if: ${{ github.event_name == 'push' || inputs.publish_to_store }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check Microsoft Store secrets
+        id: check-secrets
+        shell: pwsh
+        env:
+          PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}
+          PARTNER_CENTER_SELLER_ID: ${{ secrets.PARTNER_CENTER_SELLER_ID }}
+          PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
+          PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+          PARTNER_CENTER_APP_ID: ${{ secrets.PARTNER_CENTER_APP_ID }}
+        run: |
+          $required = [ordered]@{
+            PARTNER_CENTER_TENANT_ID     = $env:PARTNER_CENTER_TENANT_ID
+            PARTNER_CENTER_SELLER_ID     = $env:PARTNER_CENTER_SELLER_ID
+            PARTNER_CENTER_CLIENT_ID     = $env:PARTNER_CENTER_CLIENT_ID
+            PARTNER_CENTER_CLIENT_SECRET = $env:PARTNER_CENTER_CLIENT_SECRET
+            PARTNER_CENTER_APP_ID        = $env:PARTNER_CENTER_APP_ID
+          }
+          $missing = @($required.GetEnumerator() | Where-Object { [string]::IsNullOrWhiteSpace($_.Value) } | ForEach-Object { $_.Key })
+          if ($missing.Count -eq $required.Count) {
+            Write-Output "::warning::Microsoft Store secrets are not configured ($($missing -join ', ')). Skipping automated Store submission; download the 'windows-store-msix' artifact for manual Partner Center upload."
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "configured=false"
+            exit 0
+          }
+          if ($missing.Count -gt 0) {
+            Write-Output "::error::Incomplete Microsoft Store secrets configuration. Missing: $($missing -join ', ')"
+            exit 1
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "configured=true"
+
+      - name: Checkout repository
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Download Microsoft Store MSIX artifact
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-store-msix
+          path: msix_artifact
+
+      - name: Verify MSIX artifact
+        if: steps.check-secrets.outputs.configured == 'true'
+        shell: pwsh
+        run: |
+          $msixFiles = @(Get-ChildItem -Path "msix_artifact" -Filter "*.msix" -Recurse)
+          if ($msixFiles.Count -eq 0) {
+            Write-Output "::error::No .msix file found in msix_artifact."
+            exit 1
+          }
+          foreach ($file in $msixFiles) {
+            Write-Host "Found MSIX package: $($file.FullName) ($([math]::Round($file.Length / 1MB, 2)) MB)"
+          }
+
+      - name: Setup Microsoft Store Developer CLI
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: microsoft/microsoft-store-apppublisher@v1.4
+
+      - name: Configure Microsoft Store CLI credentials
+        if: steps.check-secrets.outputs.configured == 'true'
+        shell: pwsh
+        env:
+          PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}
+          PARTNER_CENTER_SELLER_ID: ${{ secrets.PARTNER_CENTER_SELLER_ID }}
+          PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
+          PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+        run: |
+          msstore settings --enableTelemetry false
+          msstore reconfigure `
+            --tenantId $env:PARTNER_CENTER_TENANT_ID `
+            --sellerId $env:PARTNER_CENTER_SELLER_ID `
+            --clientId $env:PARTNER_CENTER_CLIENT_ID `
+            --clientSecret $env:PARTNER_CENTER_CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "::error::msstore reconfigure failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+
+      - name: Publish MSIX to Microsoft Store
+        if: steps.check-secrets.outputs.configured == 'true'
+        shell: pwsh
+        env:
+          PARTNER_CENTER_APP_ID: ${{ secrets.PARTNER_CENTER_APP_ID }}
+          STORE_DRAFT: ${{ github.event_name == 'workflow_dispatch' && inputs.store_draft || false }}
+        run: |
+          $publishArgs = @(
+            'publish', '.',
+            '--appId', $env:PARTNER_CENTER_APP_ID,
+            '--inputDirectory', 'msix_artifact',
+            '--uploadTimeout', '600'
+          )
+          if ($env:STORE_DRAFT -eq 'true') {
+            Write-Host "==> Uploading MSIX to Microsoft Store as DRAFT (--noCommit)..."
+            $publishArgs += '--noCommit'
+          } else {
+            Write-Host "==> Uploading and committing MSIX submission to Microsoft Store..."
+          }
+          & msstore @publishArgs
+          if ($LASTEXITCODE -ne 0) {
+            Write-Output "::error::msstore publish failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
