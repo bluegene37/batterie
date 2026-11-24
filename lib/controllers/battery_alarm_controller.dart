@@ -58,6 +58,8 @@ class BatteryAlarmController extends ChangeNotifier {
   bool _isUpdateBannerDismissed = false;
   Timer? _updateInitialTimer;
   Timer? _updateCheckTimer;
+  // Gene - Nov, 24, 2026: Cancellable timer for resetting manual up-to-date banner feedback.
+  Timer? _upToDateResetTimer;
 
   // Gene - Oct 24, 2026: Added UpdateService injection parameter to constructor. Preserved previous constructor below.
   // BatteryAlarmController({
@@ -98,6 +100,13 @@ class BatteryAlarmController extends ChangeNotifier {
   bool get isUpdateBannerDismissed => _isUpdateBannerDismissed;
   bool get hasUpdateAvailable =>
       _updateInfo != null && !_isUpdateBannerDismissed;
+  // Gene - Nov, 24, 2026: Unified visibility getter for UpdateBanner across all active banner states.
+  bool get showUpdateBanner =>
+      hasUpdateAvailable ||
+      _updateStatus == UpdateStatus.downloading ||
+      _updateStatus == UpdateStatus.installing ||
+      _updateStatus == UpdateStatus.error ||
+      _updateStatus == UpdateStatus.upToDate;
 
   // Gene - Oct 24, 2026: Extended init with optional scheduleUpdateChecks parameter. Preserved previous init signature below.
   // Future<void> init() async {
@@ -435,45 +444,161 @@ class BatteryAlarmController extends ChangeNotifier {
   }
 
   // Gene - Oct 24, 2026: Methods for checking, installing, and managing application updates.
+  // Gene - Nov, 24, 2026: Fixed dismissUpdateBanner() to reset upToDate/error states, made background checks silent when up-to-date/offline, skipped self-update for Microsoft Store MSIX builds (opening Store instead), added retryOrInstallUpdate(), and replaced Future.delayed with cancellable _upToDateResetTimer. Preserved previous update methods below.
+  // Future<void> checkForUpdates({bool manual = false}) async {
+  //   if (_updateStatus == UpdateStatus.downloading ||
+  //       _updateStatus == UpdateStatus.installing) {
+  //     return;
+  //   }
+  //
+  //   _updateStatus = UpdateStatus.checking;
+  //   _updateErrorMessage = null;
+  //   notifyListeners();
+  //
+  //   try {
+  //     final update = await _updateService.checkForUpdates();
+  //     if (update != null) {
+  //       _updateInfo = update;
+  //       _updateStatus = UpdateStatus.available;
+  //       _isUpdateBannerDismissed = false;
+  //       notifyListeners();
+  //
+  //       // If auto-update is enabled and the alarm is not ringing, install automatically
+  //       if (_autoUpdateEnabled && !_alarmState.isRinging) {
+  //         await installUpdate();
+  //       }
+  //     } else {
+  //       _updateStatus = UpdateStatus.upToDate;
+  //       notifyListeners();
+  //
+  //       if (manual) {
+  //         // Reset status to idle after brief up-to-date feedback
+  //         Future.delayed(const Duration(seconds: 4), () {
+  //           if (_updateStatus == UpdateStatus.upToDate) {
+  //             _updateStatus = UpdateStatus.idle;
+  //             notifyListeners();
+  //           }
+  //         });
+  //       }
+  //     }
+  //   } catch (e) {
+  //     _updateStatus = UpdateStatus.error;
+  //     _updateErrorMessage = 'Update check failed: $e';
+  //     notifyListeners();
+  //   }
+  // }
+  //
+  // Future<void> installUpdate() async {
+  //   final update = _updateInfo;
+  //   if (update == null) return;
+  //   if (_updateStatus == UpdateStatus.downloading ||
+  //       _updateStatus == UpdateStatus.installing) {
+  //     return;
+  //   }
+  //
+  //   // Do not interrupt while an alarm is ringing
+  //   if (_alarmState.isRinging) {
+  //     debugPrint('Update paused: alarm is actively ringing.');
+  //     return;
+  //   }
+  //
+  //   _updateStatus = UpdateStatus.downloading;
+  //   _downloadProgress = 0.0;
+  //   _updateErrorMessage = null;
+  //   notifyListeners();
+  //
+  //   try {
+  //     final downloadedFile = await _updateService.downloadReleaseAsset(
+  //       update,
+  //       onProgress: (progress) {
+  //         _downloadProgress = progress;
+  //         notifyListeners();
+  //       },
+  //     );
+  //
+  //     _updateStatus = UpdateStatus.installing;
+  //     notifyListeners();
+  //
+  //     final success = await _updateService.installUpdate(downloadedFile);
+  //     if (!success) {
+  //       _updateStatus = UpdateStatus.error;
+  //       _updateErrorMessage = 'Failed to apply update.';
+  //       notifyListeners();
+  //     }
+  //   } catch (e) {
+  //     _updateStatus = UpdateStatus.error;
+  //     _updateErrorMessage = 'Download failed: $e';
+  //     notifyListeners();
+  //   }
+  // }
+  //
+  // void dismissUpdateBanner() {
+  //   _isUpdateBannerDismissed = true;
+  //   notifyListeners();
+  // }
+  //
+  // Future<void> setAutoUpdateEnabled(bool enabled) async {
+  //   if (_autoUpdateEnabled == enabled) return;
+  //   _autoUpdateEnabled = enabled;
+  //   await _settingsService.saveAutoUpdateEnabled(enabled);
+  //   notifyListeners();
+  //
+  //   if (enabled && _updateInfo != null && !_alarmState.isRinging) {
+  //     await installUpdate();
+  //   }
+  // }
   Future<void> checkForUpdates({bool manual = false}) async {
     if (_updateStatus == UpdateStatus.downloading ||
         _updateStatus == UpdateStatus.installing) {
       return;
     }
 
+    _upToDateResetTimer?.cancel();
+    _upToDateResetTimer = null;
+
     _updateStatus = UpdateStatus.checking;
     _updateErrorMessage = null;
     notifyListeners();
 
     try {
-      final update = await _updateService.checkForUpdates();
+      final update = await _updateService.checkForUpdates(throwOnError: manual);
       if (update != null) {
         _updateInfo = update;
         _updateStatus = UpdateStatus.available;
         _isUpdateBannerDismissed = false;
         notifyListeners();
 
-        // If auto-update is enabled and the alarm is not ringing, install automatically
-        if (_autoUpdateEnabled && !_alarmState.isRinging) {
+        // Never self-update Microsoft Store MSIX builds; Store handles updates.
+        if (_autoUpdateEnabled && !update.isStoreBuild && !_alarmState.isRinging) {
           await installUpdate();
         }
-      } else {
+      } else if (manual) {
         _updateStatus = UpdateStatus.upToDate;
+        _isUpdateBannerDismissed = false;
         notifyListeners();
 
-        if (manual) {
-          // Reset status to idle after brief up-to-date feedback
-          Future.delayed(const Duration(seconds: 4), () {
-            if (_updateStatus == UpdateStatus.upToDate) {
-              _updateStatus = UpdateStatus.idle;
-              notifyListeners();
-            }
-          });
-        }
+        // Reset status to idle after brief up-to-date feedback
+        _upToDateResetTimer = Timer(const Duration(seconds: 4), () {
+          if (_updateStatus == UpdateStatus.upToDate) {
+            _updateStatus = UpdateStatus.idle;
+            notifyListeners();
+          }
+        });
+      } else {
+        // Background checks stay quiet when already up to date.
+        _updateStatus = UpdateStatus.idle;
+        notifyListeners();
       }
     } catch (e) {
-      _updateStatus = UpdateStatus.error;
-      _updateErrorMessage = 'Update check failed: $e';
+      debugPrint('Update check error: $e');
+      if (manual) {
+        _updateStatus = UpdateStatus.error;
+        _updateErrorMessage =
+            'Unable to check for updates. Please check your connection and try again.';
+        _isUpdateBannerDismissed = false;
+      } else {
+        _updateStatus = UpdateStatus.idle;
+      }
       notifyListeners();
     }
   }
@@ -489,6 +614,17 @@ class BatteryAlarmController extends ChangeNotifier {
     // Do not interrupt while an alarm is ringing
     if (_alarmState.isRinging) {
       debugPrint('Update paused: alarm is actively ringing.');
+      return;
+    }
+
+    if (update.isStoreBuild) {
+      final opened = await _updateService.openMicrosoftStoreUpdates();
+      if (!opened) {
+        _updateStatus = UpdateStatus.error;
+        _updateErrorMessage =
+            'Could not open Microsoft Store. Please check for updates in the Microsoft Store app.';
+        notifyListeners();
+      }
       return;
     }
 
@@ -522,8 +658,24 @@ class BatteryAlarmController extends ChangeNotifier {
     }
   }
 
+  // Gene - Nov, 24, 2026: Retry update check when check failed (_updateInfo == null), otherwise install/open Store.
+  Future<void> retryOrInstallUpdate() async {
+    if (_updateStatus == UpdateStatus.error && _updateInfo == null) {
+      await checkForUpdates(manual: true);
+      return;
+    }
+    await installUpdate();
+  }
+
   void dismissUpdateBanner() {
+    _upToDateResetTimer?.cancel();
+    _upToDateResetTimer = null;
     _isUpdateBannerDismissed = true;
+    if (_updateStatus == UpdateStatus.upToDate ||
+        _updateStatus == UpdateStatus.error) {
+      _updateStatus = UpdateStatus.idle;
+      _updateErrorMessage = null;
+    }
     notifyListeners();
   }
 
@@ -533,7 +685,10 @@ class BatteryAlarmController extends ChangeNotifier {
     await _settingsService.saveAutoUpdateEnabled(enabled);
     notifyListeners();
 
-    if (enabled && _updateInfo != null && !_alarmState.isRinging) {
+    if (enabled &&
+        _updateInfo != null &&
+        !_updateInfo!.isStoreBuild &&
+        !_alarmState.isRinging) {
       await installUpdate();
     }
   }
@@ -545,10 +700,20 @@ class BatteryAlarmController extends ChangeNotifier {
   //   _alarmService.dispose();
   //   super.dispose();
   // }
+  // Gene - Nov, 24, 2026: Also cancel _upToDateResetTimer on dispose. Preserved previous dispose below.
+  // @override
+  // void dispose() {
+  //   _updateInitialTimer?.cancel();
+  //   _updateCheckTimer?.cancel();
+  //   _batterySubscription?.cancel();
+  //   _alarmService.dispose();
+  //   super.dispose();
+  // }
   @override
   void dispose() {
     _updateInitialTimer?.cancel();
     _updateCheckTimer?.cancel();
+    _upToDateResetTimer?.cancel();
     _batterySubscription?.cancel();
     _alarmService.dispose();
     super.dispose();

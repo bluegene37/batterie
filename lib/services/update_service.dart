@@ -8,7 +8,9 @@ import '../models/update_info.dart';
 
 class UpdateService {
   static const String defaultRepo = 'bluegene37/batterie';
-  static const String currentAppVersion = '1.0.3';
+  // Gene - Nov, 24, 2026: Bump currentAppVersion to 1.0.4 to match pubspec.yaml release version.
+  // static const String currentAppVersion = '1.0.3';
+  static const String currentAppVersion = '1.0.4';
 
   final String repo;
   final String currentVersion;
@@ -69,7 +71,46 @@ class UpdateService {
   }
 
   /// Queries GitHub Releases API for the latest release.
-  Future<UpdateInfo?> checkForUpdates() async {
+  // Gene - Nov, 24, 2026: Added throwOnError flag so manual update checks surface HTTP/network errors instead of falsely reporting up-to-date, and added openMicrosoftStoreUpdates() for Store MSIX builds. Preserved previous checkForUpdates below.
+  // Future<UpdateInfo?> checkForUpdates() async {
+  //   final client = _createHttpClient();
+  //   try {
+  //     final uri = Uri.parse('https://api.github.com/repos/$repo/releases/latest');
+  //     final request = await client.getUrl(uri);
+  //     request.headers.set('User-Agent', 'Batterie-App-Updater');
+  //     request.headers.set('Accept', 'application/vnd.github.v3+json');
+  //
+  //     final response = await request.close();
+  //     if (response.statusCode != HttpStatus.ok) {
+  //       debugPrint('UpdateService: GitHub returned HTTP ${response.statusCode}');
+  //       return null;
+  //     }
+  //
+  //     final responseBody = await response.transform(utf8.decoder).join();
+  //     final Map<String, dynamic> json =
+  //         jsonDecode(responseBody) as Map<String, dynamic>;
+  //
+  //     final updateInfo = UpdateInfo.fromGitHubRelease(
+  //       json: json,
+  //       isMacOS: Platform.isMacOS,
+  //       isWindows: Platform.isWindows,
+  //       isStoreBuild: isStoreBuild,
+  //     );
+  //
+  //     if (isNewerVersion(currentVersion, updateInfo.version)) {
+  //       return updateInfo;
+  //     }
+  //     return null;
+  //   } catch (e) {
+  //     debugPrint('UpdateService check error: $e');
+  //     return null;
+  //   } finally {
+  //     if (_customHttpClient == null) {
+  //       client.close();
+  //     }
+  //   }
+  // }
+  Future<UpdateInfo?> checkForUpdates({bool throwOnError = false}) async {
     final client = _createHttpClient();
     try {
       final uri = Uri.parse('https://api.github.com/repos/$repo/releases/latest');
@@ -80,6 +121,9 @@ class UpdateService {
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         debugPrint('UpdateService: GitHub returned HTTP ${response.statusCode}');
+        if (throwOnError) {
+          throw Exception('GitHub Releases returned HTTP ${response.statusCode}');
+        }
         return null;
       }
 
@@ -100,11 +144,27 @@ class UpdateService {
       return null;
     } catch (e) {
       debugPrint('UpdateService check error: $e');
+      if (throwOnError) rethrow;
       return null;
     } finally {
       if (_customHttpClient == null) {
         client.close();
       }
+    }
+  }
+
+  // Gene - Nov, 24, 2026: Open Microsoft Store Library/Updates page for MSIX Store builds instead of attempting self-modification inside WindowsApps.
+  Future<bool> openMicrosoftStoreUpdates() async {
+    if (!Platform.isWindows) return false;
+    try {
+      final result = await Process.run(
+        'cmd',
+        ['/c', 'start', '', 'ms-windows-store://downloadsandupdates'],
+      );
+      return result.exitCode == 0;
+    } catch (e) {
+      debugPrint('UpdateService failed to open Microsoft Store: $e');
+      return false;
     }
   }
 

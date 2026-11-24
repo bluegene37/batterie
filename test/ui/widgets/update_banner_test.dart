@@ -115,4 +115,85 @@ void main() {
     await tester.pump();
     expect(retryPressed, isTrue);
   });
+
+  // Gene - Nov, 24, 2026: Added regression tests for up-to-date dismissal, Store CTA label, and hiding close button during downloads.
+  testWidgets('UpdateBanner renders up-to-date state and triggers onDismiss when tapping close', (tester) async {
+    bool dismissPressed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UpdateBanner(
+            updateInfo: null,
+            status: UpdateStatus.upToDate,
+            progress: 0.0,
+            onUpdate: () {},
+            onDismiss: () {
+              dismissPressed = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Batterie is Up to Date'), findsOneWidget);
+    expect(find.byTooltip('Dismiss'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Dismiss'));
+    await tester.pump();
+    expect(dismissPressed, isTrue);
+  });
+
+  testWidgets('UpdateBanner renders Open Microsoft Store button for Store builds', (tester) async {
+    bool storePressed = false;
+    final storeUpdate = UpdateInfo(
+      version: '1.0.5',
+      tagName: 'v1.0.5',
+      releaseUrl: 'https://example.com/release',
+      assetUrl: 'https://example.com/batterie-windows-x64.zip',
+      assetName: 'batterie-windows-x64.zip',
+      isStoreBuild: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UpdateBanner(
+            updateInfo: storeUpdate,
+            status: UpdateStatus.available,
+            progress: 0.0,
+            onUpdate: () {
+              storePressed = true;
+            },
+            onDismiss: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Open Microsoft Store'), findsOneWidget);
+    expect(find.text('Update & Restart'), findsNothing);
+
+    await tester.tap(find.text('Open Microsoft Store'));
+    await tester.pump();
+    expect(storePressed, isTrue);
+  });
+
+  testWidgets('UpdateBanner hides close button while downloading', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UpdateBanner(
+            updateInfo: testUpdate,
+            status: UpdateStatus.downloading,
+            progress: 0.4,
+            onUpdate: () {},
+            onDismiss: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('Dismiss'), findsNothing);
+  });
 }

@@ -165,13 +165,14 @@ jobs:
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'T7LB768N2Z' }}
+          # Gene - Nov, 24, 2026: Read APPLE_TEAM_ID strictly from GitHub Secrets with no hardcoded fallback.
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           DMG_PATH="release_artifacts/batterie-macos.dmg"
           APP_PATH="build/macos/Build/Products/Release/batterie.app"
           
-          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
-            echo "::warning ::APPLE_ID or APPLE_APP_SPECIFIC_PASSWORD secret not set. Skipping Apple notarization."
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "::warning ::APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, or APPLE_TEAM_ID secret not set. Skipping Apple notarization."
             exit 0
           fi
           

@@ -14,13 +14,34 @@ class FakeUpdateService extends UpdateService {
   bool checkCalled = false;
   bool downloadCalled = false;
   bool installCalled = false;
+  // Gene - Nov, 24, 2026: Added shouldThrow and openStoreCalled tracking for manual error and Store build tests.
+  bool shouldThrow = false;
+  bool openStoreCalled = false;
 
   FakeUpdateService({this.nextUpdate});
 
+  // Gene - Nov, 24, 2026: Updated checkForUpdates mock to support throwOnError and added openMicrosoftStoreUpdates mock. Preserved previous checkForUpdates below.
+  // @override
+  // Future<UpdateInfo?> checkForUpdates() async {
+  //   checkCalled = true;
+  //   return nextUpdate;
+  // }
   @override
-  Future<UpdateInfo?> checkForUpdates() async {
+  Future<UpdateInfo?> checkForUpdates({bool throwOnError = false}) async {
     checkCalled = true;
+    if (shouldThrow && throwOnError) {
+      throw Exception('Network error');
+    }
+    if (shouldThrow) {
+      return null;
+    }
     return nextUpdate;
+  }
+
+  @override
+  Future<bool> openMicrosoftStoreUpdates() async {
+    openStoreCalled = true;
+    return true;
   }
 
   @override
@@ -167,6 +188,134 @@ void main() {
       expect(saved, isTrue);
 
       controller.dispose();
+    });
+
+    // Gene - Nov, 24, 2026: Added regression tests for silent background checks, manual up-to-date dismissal, error retry/dismiss, Store build handling, and timer disposal safety.
+    test('background checkForUpdates stays idle when already up to date', () async {
+      final updateService = FakeUpdateService(nextUpdate: null);
+      final controller = BatteryAlarmController(
+        updateService: updateService,
+        alarmService: FakeAlarmService(),
+        settingsService: SettingsService(),
+      );
+
+      await controller.init();
+      await controller.checkForUpdates(manual: false);
+
+      expect(updateService.checkCalled, isTrue);
+      expect(controller.updateStatus, equals(UpdateStatus.idle));
+      expect(controller.showUpdateBanner, isFalse);
+
+      controller.dispose();
+    });
+
+    test('manual checkForUpdates sets upToDate and dismissUpdateBanner resets to idle', () async {
+      final updateService = FakeUpdateService(nextUpdate: null);
+      final controller = BatteryAlarmController(
+        updateService: updateService,
+        alarmService: FakeAlarmService(),
+        settingsService: SettingsService(),
+      );
+
+      await controller.init();
+      await controller.checkForUpdates(manual: true);
+
+      expect(controller.updateStatus, equals(UpdateStatus.upToDate));
+      expect(controller.showUpdateBanner, isTrue);
+
+      controller.dismissUpdateBanner();
+
+      expect(controller.updateStatus, equals(UpdateStatus.idle));
+      expect(controller.showUpdateBanner, isFalse);
+      expect(controller.isUpdateBannerDismissed, isTrue);
+
+      controller.dispose();
+    });
+
+    test('manual error state can be dismissed and retried via retryOrInstallUpdate', () async {
+      final updateService = FakeUpdateService(nextUpdate: null)
+        ..shouldThrow = true;
+      final controller = BatteryAlarmController(
+        updateService: updateService,
+        alarmService: FakeAlarmService(),
+        settingsService: SettingsService(),
+      );
+
+      await controller.init();
+      await controller.checkForUpdates(manual: true);
+
+      expect(controller.updateStatus, equals(UpdateStatus.error));
+      expect(controller.updateErrorMessage, isNotNull);
+      expect(controller.showUpdateBanner, isTrue);
+
+      controller.dismissUpdateBanner();
+      expect(controller.updateStatus, equals(UpdateStatus.idle));
+      expect(controller.updateErrorMessage, isNull);
+      expect(controller.showUpdateBanner, isFalse);
+
+      await controller.checkForUpdates(manual: true);
+      expect(controller.updateStatus, equals(UpdateStatus.error));
+
+      updateService
+        ..checkCalled = false
+        ..shouldThrow = false;
+      await controller.retryOrInstallUpdate();
+
+      expect(updateService.checkCalled, isTrue);
+      expect(controller.updateStatus, equals(UpdateStatus.upToDate));
+
+      controller.dispose();
+    });
+
+    test('Store builds do not auto-install and open Microsoft Store instead of downloading zip', () async {
+      SharedPreferences.setMockInitialValues({
+        'app_auto_update_enabled': true,
+      });
+      final storeUpdate = UpdateInfo(
+        version: '1.0.5',
+        tagName: 'v1.0.5',
+        releaseUrl: 'https://example.com/release',
+        assetUrl: 'https://example.com/batterie-windows-x64.zip',
+        assetName: 'batterie-windows-x64.zip',
+        isStoreBuild: true,
+      );
+      final updateService = FakeUpdateService(nextUpdate: storeUpdate);
+      final controller = BatteryAlarmController(
+        updateService: updateService,
+        alarmService: FakeAlarmService(),
+        settingsService: SettingsService(),
+      );
+
+      await controller.init();
+      await controller.checkForUpdates(manual: true);
+
+      expect(controller.updateStatus, equals(UpdateStatus.available));
+      expect(updateService.downloadCalled, isFalse);
+      expect(updateService.installCalled, isFalse);
+      expect(updateService.openStoreCalled, isFalse);
+
+      await controller.installUpdate();
+
+      expect(updateService.openStoreCalled, isTrue);
+      expect(updateService.downloadCalled, isFalse);
+      expect(updateService.installCalled, isFalse);
+
+      controller.dispose();
+    });
+
+    test('disposing controller cancels pending upToDate auto-reset timer cleanly', () async {
+      final updateService = FakeUpdateService(nextUpdate: null);
+      final controller = BatteryAlarmController(
+        updateService: updateService,
+        alarmService: FakeAlarmService(),
+        settingsService: SettingsService(),
+      );
+
+      await controller.init();
+      await controller.checkForUpdates(manual: true);
+      expect(controller.updateStatus, equals(UpdateStatus.upToDate));
+
+      expect(() => controller.dispose(), returnsNormally);
     });
   });
 }

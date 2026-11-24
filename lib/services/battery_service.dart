@@ -7,6 +7,8 @@ import '../models/battery_info.dart';
 class BatteryService {
   final bp.Battery _batteryPlugin;
   Timer? _timer;
+  // Gene - Nov, 24, 2026: Store OS battery state StreamSubscription so dispose() can cancel it cleanly.
+  StreamSubscription<bp.BatteryState>? _stateSubscription;
   final _controller = StreamController<BatteryInfo>.broadcast();
   BatteryInfo _lastKnown = const BatteryInfo(
     percentage: 100,
@@ -26,7 +28,9 @@ class BatteryService {
   void _init() {
     // Listen for OS battery state transitions (plug/unplug)
     try {
-      _batteryPlugin.onBatteryStateChanged.listen(
+      // Gene - Nov, 24, 2026: Capture subscription handle for cleanup in dispose(). Preserved uncaptured listen call below.
+      // _batteryPlugin.onBatteryStateChanged.listen(
+      _stateSubscription = _batteryPlugin.onBatteryStateChanged.listen(
         (_) {
           fetchBatteryInfo();
         },
@@ -91,10 +95,21 @@ class BatteryService {
 
   Future<BatteryInfo?> _getWindowsBatteryInfo() async {
     try {
+      // Gene - Nov, 24, 2026: Run PowerShell with -WindowStyle Hidden so background battery polls never flash a console window on Windows. Preserved previous Process.run call below.
+      // final result = await Process.run(
+      //   'powershell',
+      //   [
+      //     '-NoProfile',
+      //     '-Command',
+      //     'Get-CimInstance -ClassName Win32_Battery | Select-Object -Property EstimatedChargeRemaining, BatteryStatus',
+      //   ],
+      // );
       final result = await Process.run(
         'powershell',
         [
           '-NoProfile',
+          '-WindowStyle',
+          'Hidden',
           '-Command',
           'Get-CimInstance -ClassName Win32_Battery | Select-Object -Property EstimatedChargeRemaining, BatteryStatus',
         ],
@@ -171,9 +186,16 @@ class BatteryService {
     );
   }
 
+  // Gene - Nov, 24, 2026: Cancel OS battery state subscription on dispose. Preserved previous dispose below.
+  // void dispose() {
+  //   _isDisposed = true;
+  //   _timer?.cancel();
+  //   _controller.close();
+  // }
   void dispose() {
     _isDisposed = true;
     _timer?.cancel();
+    _stateSubscription?.cancel();
     _controller.close();
   }
 }

@@ -93,13 +93,23 @@ class UpdateBanner extends StatelessWidget {
                   ),
                 ),
               ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                splashRadius: 14,
-                icon: const Icon(Icons.close_rounded, size: 16),
-                tooltip: 'Dismiss',
-                onPressed: onDismiss,
-              ),
+              // Gene - Nov, 24, 2026: Hide close button while download/install is actively in progress. Preserved unconditional IconButton below.
+              // IconButton(
+              //   visualDensity: VisualDensity.compact,
+              //   splashRadius: 14,
+              //   icon: const Icon(Icons.close_rounded, size: 16),
+              //   tooltip: 'Dismiss',
+              //   onPressed: onDismiss,
+              // ),
+              if (status != UpdateStatus.downloading &&
+                  status != UpdateStatus.installing)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  splashRadius: 14,
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  tooltip: 'Dismiss',
+                  onPressed: onDismiss,
+                ),
             ],
           ),
           const SizedBox(height: 4),
@@ -143,14 +153,31 @@ class UpdateBanner extends StatelessWidget {
                     foregroundColor: scheme.onPrimary,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
+                  // Gene - Nov, 24, 2026: Show Store icon and 'Open Microsoft Store' CTA for MSIX Store builds. Preserved previous icon and label below.
+                  // icon: Icon(
+                  //   status == UpdateStatus.error
+                  //       ? Icons.refresh_rounded
+                  //       : Icons.arrow_circle_up_rounded,
+                  //   size: 15,
+                  // ),
+                  // label: Text(
+                  //   status == UpdateStatus.error ? 'Retry' : 'Update & Restart',
+                  //   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                  // ),
                   icon: Icon(
                     status == UpdateStatus.error
                         ? Icons.refresh_rounded
-                        : Icons.arrow_circle_up_rounded,
+                        : ((updateInfo?.isStoreBuild ?? false)
+                            ? Icons.store_rounded
+                            : Icons.arrow_circle_up_rounded),
                     size: 15,
                   ),
                   label: Text(
-                    status == UpdateStatus.error ? 'Retry' : 'Update & Restart',
+                    status == UpdateStatus.error
+                        ? 'Retry'
+                        : ((updateInfo?.isStoreBuild ?? false)
+                            ? 'Open Microsoft Store'
+                            : 'Update & Restart'),
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),
@@ -186,8 +213,12 @@ class UpdateBanner extends StatelessWidget {
       case UpdateStatus.checking:
         return 'Connecting to GitHub Releases...';
       case UpdateStatus.available:
+        // Gene - Nov, 24, 2026: Clarified Store build update guidance to direct users to Microsoft Store. Preserved previous message below.
+        // if (updateInfo?.isStoreBuild ?? false) {
+        //   return 'A new release is available on GitHub. Updates are also published through Microsoft Store.';
+        // }
         if (updateInfo?.isStoreBuild ?? false) {
-          return 'A new release is available on GitHub. Updates are also published through Microsoft Store.';
+          return 'A new version is available. Open Microsoft Store to update Batterie.';
         }
         return 'A new version is ready. Click below to install and restart seamlessly.';
       case UpdateStatus.downloading:

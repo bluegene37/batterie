@@ -6,6 +6,9 @@ import 'package:batterie/models/battery_info.dart';
 import 'package:batterie/services/alarm_service.dart';
 import 'package:batterie/services/settings_service.dart';
 import 'package:batterie/services/tray_window_service.dart';
+// Gene - Nov, 24, 2026: Added UpdateInfo and UpdateService imports for DashboardScreen up-to-date banner dismissal test.
+import 'package:batterie/models/update_info.dart';
+import 'package:batterie/services/update_service.dart';
 import 'package:batterie/ui/dashboard_screen.dart';
 
 class MockAlarmService extends AlarmService {
@@ -28,6 +31,14 @@ class FakeTrayWindowService extends TrayWindowService {
   @override
   Future<void> updateContentHeight(double contentHeight) async {
     reportedHeight = contentHeight;
+  }
+}
+
+// Gene - Nov, 24, 2026: Added FakeUpdateService for DashboardScreen up-to-date banner dismissal regression test.
+class FakeDashboardUpdateService extends UpdateService {
+  @override
+  Future<UpdateInfo?> checkForUpdates({bool throwOnError = false}) async {
+    return null;
   }
 }
 
@@ -274,5 +285,39 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.repeatCount, equals(5));
+  });
+
+  // Gene - Nov, 24, 2026: Regression test verifying the manual 'Batterie is Up to Date' banner closes immediately when tapping Dismiss (X).
+  testWidgets('Tapping X closes the Batterie is Up to Date banner in DashboardScreen', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final controller = BatteryAlarmController(
+      alarmService: MockAlarmService(),
+      settingsService: SettingsService(),
+      updateService: FakeDashboardUpdateService(),
+    );
+    await controller.init();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DashboardScreen(
+          controller: controller,
+          onMinimizeToTray: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await controller.checkForUpdates(manual: true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Batterie is Up to Date'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Dismiss'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Batterie is Up to Date'), findsNothing);
+    expect(controller.updateStatus, equals(UpdateStatus.idle));
+
+    controller.dispose();
   });
 }

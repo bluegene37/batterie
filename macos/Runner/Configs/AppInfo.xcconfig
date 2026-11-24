@@ -11,8 +11,7 @@ PRODUCT_NAME = batterie
 // Gene - Oct, 07, 2026: Updated bundle identifier to dev.genexis.batterie and configured DEVELOPMENT_TEAM for Apple Developer account.
 // PRODUCT_BUNDLE_IDENTIFIER = com.example.batterie
 PRODUCT_BUNDLE_IDENTIFIER = dev.genexis.batterie
-// Gene - Oct, 07, 2026: Commented out DEVELOPMENT_TEAM to prevent xcodebuild certificate requirement during flutter build on headless CI
-// DEVELOPMENT_TEAM = T7LB768N2Z
+// Gene - Nov, 24, 2026: Removed commented personal DEVELOPMENT_TEAM ID for public repo hygiene; configure signing via Xcode/CI secrets.
 
 // The copyright displayed in application information
 // Gene - Oct, 07, 2026: Updated copyright notice organization to dev.genexis.

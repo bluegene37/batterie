@@ -1,7 +1,10 @@
+// Gene - Nov, 24, 2026: Added dart:io and UpdateService imports for platform-adaptive tray footnote and app version display.
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import '../controllers/battery_alarm_controller.dart';
 import '../services/tray_window_service.dart';
+import '../services/update_service.dart';
 import '../theme/app_theme.dart';
 import 'widgets/active_alarm_banner.dart';
 import 'widgets/alarm_takeover.dart';
@@ -53,11 +56,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _measureAndExpandWindow());
+    // Gene - Nov, 24, 2026: Moved _measureAndExpandWindow inside ListenableBuilder so fixed window height re-measures on controller state changes (e.g. banner show/dismiss). Preserved previous call below.
+    // WidgetsBinding.instance.addPostFrameCallback((_) => _measureAndExpandWindow());
 
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _measureAndExpandWindow());
         final theme = Theme.of(context);
         final isMacOS = AppTheme.isMacOS;
         final isDark = theme.brightness == Brightness.dark;
@@ -145,17 +150,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onDismiss: () => widget.controller.dismiss(),
                         ),
                         // Gene - Oct 24, 2026: Render UpdateBanner when update is available, downloading, installing, or error.
-                        if (widget.controller.hasUpdateAvailable ||
-                            widget.controller.updateStatus == UpdateStatus.downloading ||
-                            widget.controller.updateStatus == UpdateStatus.installing ||
-                            widget.controller.updateStatus == UpdateStatus.error ||
-                            widget.controller.updateStatus == UpdateStatus.upToDate)
+                        // Gene - Nov, 24, 2026: Use unified showUpdateBanner getter and retryOrInstallUpdate() handler. Preserved previous UpdateBanner wiring below.
+                        // if (widget.controller.hasUpdateAvailable ||
+                        //     widget.controller.updateStatus == UpdateStatus.downloading ||
+                        //     widget.controller.updateStatus == UpdateStatus.installing ||
+                        //     widget.controller.updateStatus == UpdateStatus.error ||
+                        //     widget.controller.updateStatus == UpdateStatus.upToDate)
+                        //   UpdateBanner(
+                        //     updateInfo: widget.controller.updateInfo,
+                        //     status: widget.controller.updateStatus,
+                        //     progress: widget.controller.downloadProgress,
+                        //     errorMessage: widget.controller.updateErrorMessage,
+                        //     onUpdate: () => widget.controller.installUpdate(),
+                        //     onDismiss: () => widget.controller.dismissUpdateBanner(),
+                        //   ),
+                        if (widget.controller.showUpdateBanner)
                           UpdateBanner(
                             updateInfo: widget.controller.updateInfo,
                             status: widget.controller.updateStatus,
                             progress: widget.controller.downloadProgress,
                             errorMessage: widget.controller.updateErrorMessage,
-                            onUpdate: () => widget.controller.installUpdate(),
+                            onUpdate: () => widget.controller.retryOrInstallUpdate(),
                             onDismiss: () => widget.controller.dismissUpdateBanner(),
                           ),
                         BatteryGauge(info: widget.controller.batteryInfo),
@@ -231,8 +246,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(width: 5),
                             Flexible(
+                              // Gene - Nov, 24, 2026: Adapt tray label per OS (system tray on Windows vs menu bar on macOS) and display current app version. Preserved previous Text below.
+                              // child: Text(
+                              //   'Lives in menu bar • Closing window keeps monitoring active',
+                              //   textAlign: TextAlign.center,
+                              //   style: theme.textTheme.bodySmall?.copyWith(
+                              //     fontSize: 10.5,
+                              //     color: theme.colorScheme.onSurfaceVariant,
+                              //   ),
+                              // ),
                               child: Text(
-                                'Lives in menu bar • Closing window keeps monitoring active',
+                                Platform.isWindows
+                                    ? 'Lives in system tray • Closing window keeps monitoring active • v${UpdateService.currentAppVersion}'
+                                    : 'Lives in menu bar • Closing window keeps monitoring active • v${UpdateService.currentAppVersion}',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontSize: 10.5,
