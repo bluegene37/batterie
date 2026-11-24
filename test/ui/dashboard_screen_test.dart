@@ -1,3 +1,5 @@
+// Gene - Nov, 24, 2026: Added dart:io import for platform-aware footnote assertion.
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,7 +159,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final footnoteFinder = find.textContaining('Lives in menu bar');
+    // Gene - Nov, 24, 2026: Match platform-specific tray label ('Lives in system tray' on Windows, 'Lives in menu bar' elsewhere). Preserved previous finder below.
+    // final footnoteFinder = find.textContaining('Lives in menu bar');
+    final footnoteFinder = find.textContaining(
+      Platform.isWindows ? 'Lives in system tray' : 'Lives in menu bar',
+    );
     expect(footnoteFinder, findsOneWidget);
     expect(
       find.ancestor(of: footnoteFinder, matching: find.byType(Flexible)),
