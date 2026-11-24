@@ -303,9 +303,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Gene - Nov, 23, 2026: Automated Microsoft Store MSIX publishing via Microsoft Store Developer CLI (msstore).
-  # Runs on v* tag pushes (auto-commits for Store certification) and on workflow_dispatch when publish_to_store is true
-  # (supports draft-only uploads via store_draft -> --noCommit). Skips gracefully with a warning if no Store secrets are set yet.
+  # Gene - Nov, 23, 2026: Automated Microsoft Store MSIX publishing via Microsoft Store Developer CLI (msstore),
+  # aligned with snipsnap's GitHub secret names (AZURE_AD_TENANT_ID, STORE_SELLER_ID, AZURE_AD_CLIENT_ID,
+  # AZURE_AD_CLIENT_SECRET, STORE_PRODUCT_ID). Runs on v* tag pushes (auto-commits for Store certification) and on
+  # workflow_dispatch when publish_to_store is true (supports draft-only uploads via store_draft -> --noCommit).
+  # Skips gracefully with a warning if no Store secrets are set yet.
   publish-microsoft-store:
     name: Publish to Microsoft Store
     needs: [build-macos, build-windows]
@@ -318,18 +320,18 @@ jobs:
         id: check-secrets
         shell: pwsh
         env:
-          PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}
-          PARTNER_CENTER_SELLER_ID: ${{ secrets.PARTNER_CENTER_SELLER_ID }}
-          PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
-          PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
-          PARTNER_CENTER_APP_ID: ${{ secrets.PARTNER_CENTER_APP_ID }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          STORE_SELLER_ID: ${{ secrets.STORE_SELLER_ID }}
+          AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          STORE_PRODUCT_ID: ${{ secrets.STORE_PRODUCT_ID }}
         run: |
           $required = [ordered]@{
-            PARTNER_CENTER_TENANT_ID     = $env:PARTNER_CENTER_TENANT_ID
-            PARTNER_CENTER_SELLER_ID     = $env:PARTNER_CENTER_SELLER_ID
-            PARTNER_CENTER_CLIENT_ID     = $env:PARTNER_CENTER_CLIENT_ID
-            PARTNER_CENTER_CLIENT_SECRET = $env:PARTNER_CENTER_CLIENT_SECRET
-            PARTNER_CENTER_APP_ID        = $env:PARTNER_CENTER_APP_ID
+            AZURE_AD_TENANT_ID     = $env:AZURE_AD_TENANT_ID
+            STORE_SELLER_ID        = $env:STORE_SELLER_ID
+            AZURE_AD_CLIENT_ID     = $env:AZURE_AD_CLIENT_ID
+            AZURE_AD_CLIENT_SECRET = $env:AZURE_AD_CLIENT_SECRET
+            STORE_PRODUCT_ID       = $env:STORE_PRODUCT_ID
           }
           $missing = @($required.GetEnumerator() | Where-Object { [string]::IsNullOrWhiteSpace($_.Value) } | ForEach-Object { $_.Key })
           if ($missing.Count -eq $required.Count) {
@@ -375,17 +377,17 @@ jobs:
         if: steps.check-secrets.outputs.configured == 'true'
         shell: pwsh
         env:
-          PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}
-          PARTNER_CENTER_SELLER_ID: ${{ secrets.PARTNER_CENTER_SELLER_ID }}
-          PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
-          PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          STORE_SELLER_ID: ${{ secrets.STORE_SELLER_ID }}
+          AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
         run: |
           msstore settings --enableTelemetry false
           msstore reconfigure `
-            --tenantId $env:PARTNER_CENTER_TENANT_ID `
-            --sellerId $env:PARTNER_CENTER_SELLER_ID `
-            --clientId $env:PARTNER_CENTER_CLIENT_ID `
-            --clientSecret $env:PARTNER_CENTER_CLIENT_SECRET
+            --tenantId $env:AZURE_AD_TENANT_ID `
+            --sellerId $env:STORE_SELLER_ID `
+            --clientId $env:AZURE_AD_CLIENT_ID `
+            --clientSecret $env:AZURE_AD_CLIENT_SECRET
           if ($LASTEXITCODE -ne 0) {
             Write-Output "::error::msstore reconfigure failed with exit code $LASTEXITCODE"
             exit $LASTEXITCODE
@@ -395,12 +397,12 @@ jobs:
         if: steps.check-secrets.outputs.configured == 'true'
         shell: pwsh
         env:
-          PARTNER_CENTER_APP_ID: ${{ secrets.PARTNER_CENTER_APP_ID }}
+          STORE_PRODUCT_ID: ${{ secrets.STORE_PRODUCT_ID }}
           STORE_DRAFT: ${{ github.event_name == 'workflow_dispatch' && inputs.store_draft || false }}
         run: |
           $publishArgs = @(
             'publish', '.',
-            '--appId', $env:PARTNER_CENTER_APP_ID,
+            '--appId', $env:STORE_PRODUCT_ID,
             '--inputDirectory', 'msix_artifact',
             '--uploadTimeout', '600'
           )
